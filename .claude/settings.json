@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pkill -f \"vite --port 5199\")",
+      "Bash(cat)",
+      "Bash(node /tmp/test_filter.mjs)"
+    ]
+  }
+}
