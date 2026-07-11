@@ -47,6 +47,7 @@ function generateAppointments(): Appointment[] {
         minute: '2-digit',
       }),
       status: statuses[i % statuses.length],
+      notes: []
     })
   }
 

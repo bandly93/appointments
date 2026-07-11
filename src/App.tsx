@@ -1,9 +1,9 @@
-import PatientTable from "./components/Table"
+import AppointmentsTable from "./components/Table"
 
 function App() {
   return (
     <div>
-      <PatientTable />
+      <AppointmentsTable />
     </div>
   )
 }
