@@ -1,3 +1,3 @@
 import { createEventEmitter } from './createEventEmitter'
 
-export const appointmentEvents = createEventEmitter()
+export const appointmentEvents: any = createEventEmitter()

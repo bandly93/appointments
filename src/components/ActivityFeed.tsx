@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { appointmentEvents } from '../events/appointmentEvents'
+import { appointmentEvents } from '../events/appointmentEvents.ts'
 
 type AppointmentUpdatedPayload = {
   appointmentId: number

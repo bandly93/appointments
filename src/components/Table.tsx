@@ -3,7 +3,8 @@
   import { type Appointment } from '../types/Appointments'
   import { useDebounce } from '../hooks/useDebounce'
   import TableRow from './TableRow'
-  import { appointmentEvents } from '../events/appointmentEvents'
+
+  import { appointmentEvents } from '../events/appointmentEvents.ts'
 
   const AppointmentsTable = () => {
     const [loading, setLoading] = useState(false)
@@ -33,10 +34,23 @@
     useEffect(() => {
       const unsubscribe = appointmentEvents.subscribe(
         'appointment.updated',
-        (payload) => console.log('table received:', payload)
+        (payload: { appointmentId: number, status: Appointment['status'] }) => {
+          setAppointments(current =>
+            current.map(appointment =>
+              appointment.id === payload.appointmentId
+                ? { ...appointment, status: payload.status }
+                : appointment
+            )
+          )
+
+          const stillMatchesFilter = status === 'All' || payload.status === status
+          if (!stillMatchesFilter) {
+            setAppointments(current => current.filter(appointment => appointment.id !== payload.appointmentId))
+          }
+        }
       )
       return unsubscribe
-    }, [])
+    }, [status])
 
     return (
       <div className='w-full max-w-5xl mx-auto p-6'>
@@ -85,7 +99,10 @@
                   ? (
                     <tbody className='divide-y divide-gray-200 bg-white'>
                       {appointments.map((appointment) =>
-                        <TableRow key={appointment.id} appointment={appointment} />
+                        <TableRow
+                          key={appointment.id}
+                          appointment={appointment}
+                        />
                       )}
                     </tbody>
                   ) : (

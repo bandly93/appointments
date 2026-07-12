@@ -65,6 +65,20 @@ function loadAppointments(): Appointment[] {
   return appointments
 }
 
+export function updateAppointmentStatus(appointmentId: number, status: Appointment['status']) {
+  const appointments = loadAppointments()
+  const appointment = appointments.find(({ id }) => id === appointmentId)
+
+  if (!appointment) {
+    return Promise.reject(new Error(`Appointment ${appointmentId} not found`))
+  }
+
+  appointment.status = status
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(appointments))
+
+  return Promise.resolve(appointment)
+}
+
 export function getAppointments({ search, status: statusFilter }: GetAppointmentsParams) {
   const appointments = loadAppointments()
 
