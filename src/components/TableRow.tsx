@@ -1,7 +1,7 @@
 import { useState, memo } from 'react'
 import { Appointment } from '../types/Appointments'
 import { updateAppointmentStatus } from '../fetchApi'
-import { appointmentEvents } from '../events/appointmentEvents'
+import { appointmentEvents } from '../events/appointmentEvents.ts'
 import Notes from './Notes'
 
 type Props = {

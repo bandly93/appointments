@@ -46,6 +46,7 @@
           const stillMatchesFilter = status === 'All' || payload.status === status
           if (!stillMatchesFilter) {
             setAppointments(current => current.filter(appointment => appointment.id !== payload.appointmentId))
+            setCount(current => current === null ? current : Math.max(0, current - 1))
           }
         }
       )
