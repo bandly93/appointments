@@ -3,6 +3,7 @@
   import { type Appointment } from '../types/Appointments'
   import { useDebounce } from '../hooks/useDebounce'
   import TableRow from './TableRow'
+  import { appointmentEvents } from '../events/appointmentEvents'
 
   const AppointmentsTable = () => {
     const [loading, setLoading] = useState(false)
@@ -28,6 +29,14 @@
       }
       callApi()
     }, [debouncedSearch, status])
+
+    useEffect(() => {
+      const unsubscribe = appointmentEvents.subscribe(
+        'appointment.updated',
+        (payload) => console.log('table received:', payload)
+      )
+      return unsubscribe
+    }, [])
 
     return (
       <div className='w-full max-w-5xl mx-auto p-6'>
