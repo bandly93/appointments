@@ -1,6 +1,6 @@
 type Callback = (payload: any) => void;
 
-export function createEventEmitter() {
+export function createEventEmitter() { 
   const subscribers = new Map<string, Set<Callback>>()
 
   // Registers a callback for an event.

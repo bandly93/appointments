@@ -8,6 +8,8 @@ type Props = {
   appointment: Appointment
 }
 
+export const ROW_GRID_CLASS = 'grid grid-cols-[1.5fr_1fr_1fr_1fr]'
+
 const STATUS_OPTIONS: Appointment['status'][] = ['Scheduled', 'Checked In', 'Completed']
 
 const AppointmentRow = ({ appointment }: Props) => {
@@ -46,37 +48,37 @@ const AppointmentRow = ({ appointment }: Props) => {
     }
   }
 
-  return <>
-    <tr
-      className='hover:bg-gray-50'
-      onClick={() => setExpanded(expanded => !expanded)}
-    >
-      <td className='px-4 py-3 text-sm text-gray-900'>{patientName}</td>
-      <td className='px-4 py-3 text-sm text-gray-600'>{provider}</td>
-      <td className='px-4 py-3 text-sm text-gray-600'>{time}</td>
-      <td className='px-4 py-3 text-sm'>
-        <select
-          value={status}
-          disabled={updating}
-          onClick={(e) => e.stopPropagation()}
-          onChange={(e) => handleStatusChange(e.target.value as Appointment['status'])}
-          className={`rounded-full border-0 px-2.5 py-0.5 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-60 ${statusBadgeClasses[status]}`}
-        >
-          {STATUS_OPTIONS.map(option => (
-            <option key={option} value={option}>{option}</option>
-          ))}
-        </select>
-      </td>
-    </tr>
-    {/* Dropdown / Collapsible Row */}
-    {expanded && (
-      <tr>
-        <td style={{ padding: "15px", color: "#555" }}>
+  return (
+    <div className='bg-white border-b border-gray-200'>
+      <div
+        className={`${ROW_GRID_CLASS} hover:bg-gray-50 cursor-pointer`}
+        onClick={() => setExpanded(expanded => !expanded)}
+      >
+        <div className='px-4 py-3 text-sm text-gray-900'>{patientName}</div>
+        <div className='px-4 py-3 text-sm text-gray-600'>{provider}</div>
+        <div className='px-4 py-3 text-sm text-gray-600 whitespace-nowrap'>{time}</div>
+        <div className='px-4 py-3 text-sm'>
+          <select
+            value={status}
+            disabled={updating}
+            onClick={(e) => e.stopPropagation()}
+            onChange={(e) => handleStatusChange(e.target.value as Appointment['status'])}
+            className={`rounded-full border-0 px-2.5 py-0.5 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-60 ${statusBadgeClasses[status]}`}
+          >
+            {STATUS_OPTIONS.map(option => (
+              <option key={option} value={option}>{option}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+      {/* Dropdown / Collapsible section */}
+      {expanded && (
+        <div style={{ padding: "15px", color: "#555" }}>
           <Notes notes={notes} />
-        </td>
-      </tr>
-    )}
-  </>
+        </div>
+      )}
+    </div>
+  )
 }
 
 export default memo(AppointmentRow)

@@ -2,7 +2,8 @@ import { useState, useEffect, useReducer } from 'react'
 import { getAppointments } from '../fetchApi'
 import { type Appointment } from '../types/Appointments'
 import { useDebounce } from '../hooks/useDebounce'
-import TableRow from './TableRow'
+import { ROW_GRID_CLASS } from './TableRow'
+import VirtualizedWrapper from './VirtualizedWrapper'
 import { appointmentEvents } from '../events/appointmentEvents'
 
 type StateType = {
@@ -95,7 +96,7 @@ const AppointmentsTable = () => {
 
   return (
     <div className='w-full max-w-5xl mx-auto p-6'>
-      <h1 className='text-2xl font-semibold text-gray-900 mb-4'>Appointment Table ({count && count > 0 && count})</h1>
+      <h1 className='text-2xl font-semibold text-gray-900 mb-4'>Appointments Table ({count && count > 0 && count})</h1>
       {error && (
         <div className='mb-4 rounded-md bg-red-50 border border-red-200 text-red-700 px-4 py-2 text-sm'>
           {error}
@@ -127,36 +128,20 @@ const AppointmentsTable = () => {
         ? <div className='py-10 text-center text-gray-500'>Loading....</div>
         : (
           <div className='overflow-x-auto rounded-lg border border-gray-200 shadow-sm'>
-            <table className='table-auto w-full text-left border-collapse'>
-              <thead className='bg-gray-50'>
-                <tr>
-                  <th className='px-4 py-3 text-sm font-semibold text-gray-700'>Patient</th>
-                  <th className='px-4 py-3 text-sm font-semibold text-gray-700'>Provider</th>
-                  <th className='px-4 py-3 text-sm font-semibold text-gray-700'>Time</th>
-                  <th className='px-4 py-3 text-sm font-semibold text-gray-700'>Status</th>
-                </tr>
-              </thead>
-              {appointments.length !== 0
-                ? (
-                  <tbody className='divide-y divide-gray-200 bg-white'>
-                    {appointments.map((appointment) =>
-                      <TableRow
-                        key={appointment.id}
-                        appointment={appointment}
-                      />
-                    )}
-                  </tbody>
-                ) : (
-                  <tbody>
-                    <tr>
-                      <td colSpan={4} className='px-4 py-10 text-center text-gray-500'>
-                        No appointments found
-                      </td>
-                    </tr>
-                  </tbody>
-                )
-              }
-            </table>
+            <div className={`${ROW_GRID_CLASS} bg-gray-50`}>
+              <div className='px-4 py-3 text-sm font-semibold text-gray-700'>Patient</div>
+              <div className='px-4 py-3 text-sm font-semibold text-gray-700'>Provider</div>
+              <div className='px-4 py-3 text-sm font-semibold text-gray-700'>Time</div>
+              <div className='px-4 py-3 text-sm font-semibold text-gray-700'>Status</div>
+            </div>
+            {appointments.length !== 0
+              ? <VirtualizedWrapper appointments={appointments} />
+              : (
+                <div className='px-4 py-10 text-center text-gray-500'>
+                  No appointments found
+                </div>
+              )
+            }
           </div>
         )
       }

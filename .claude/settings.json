@@ -3,7 +3,9 @@
     "allow": [
       "Bash(pkill -f \"vite --port 5199\")",
       "Bash(cat)",
-      "Bash(node /tmp/test_filter.mjs)"
+      "Bash(node /tmp/test_filter.mjs)",
+      "Bash(cp /tmp/verify_table.mjs /private/tmp/claude-501/-Users-bandly-Desktop-appointment/617324b2-380e-49a9-b3bf-82d35824663b/scratchpad/verify_table.mjs)",
+      "Bash(node verify_table.mjs)"
     ]
   }
 }
