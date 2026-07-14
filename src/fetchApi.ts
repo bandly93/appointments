@@ -1,4 +1,5 @@
 import { type Appointment, type GetAppointmentsParams } from './types/Appointments'
+import { type Note, type NoteAttachment } from './types/Notes'
 
 const numOfAppointments = 5000
 
@@ -54,10 +55,21 @@ function generateAppointments(): Appointment[] {
   return appointments
 }
 
+function normalizeAppointment(appointment: Appointment): Appointment {
+  return {
+    ...appointment,
+    notes: (appointment.notes ?? []).map(note => ({
+      ...note,
+      attachments: note.attachments ?? [],
+    })),
+  }
+}
+
 function loadAppointments(): Appointment[] {
   const stored = localStorage.getItem(STORAGE_KEY)
   if (stored) {
-    return JSON.parse(stored) as Appointment[]
+    const appointments = JSON.parse(stored) as Appointment[]
+    return appointments.map(normalizeAppointment)
   }
 
   const appointments = generateAppointments()
@@ -77,6 +89,36 @@ export function updateAppointmentStatus(appointmentId: number, status: Appointme
   localStorage.setItem(STORAGE_KEY, JSON.stringify(appointments))
 
   return Promise.resolve(appointment)
+}
+
+export function addNote(
+  appointmentId: number,
+  note: { text: string, author: string, attachments: NoteAttachment[] }
+) {
+  const appointments = loadAppointments()
+  const appointment = appointments.find(({ id }) => id === appointmentId)
+
+  if (!appointment) {
+    return Promise.reject(new Error(`Appointment ${appointmentId} not found`))
+  }
+
+  const savedNote: Note = {
+    id: Date.now(),
+    text: note.text,
+    author: note.author,
+    attachments: note.attachments,
+    createdAt: new Date().toISOString(),
+  }
+
+  appointment.notes = [...appointment.notes, savedNote]
+
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(appointments))
+  } catch (err) {
+    return Promise.reject(new Error('Storage limit reached. Try a smaller file or fewer attachments.'))
+  }
+
+  return Promise.resolve(savedNote)
 }
 
 export function getAppointments({ search, status: statusFilter }: GetAppointmentsParams) {

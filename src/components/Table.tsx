@@ -4,6 +4,9 @@ import { type Appointment } from '../types/Appointments'
 import { useDebounce } from '../hooks/useDebounce'
 import { ROW_GRID_CLASS } from './TableRow'
 import VirtualizedWrapper from './VirtualizedWrapper'
+import Modal from './Modal'
+import Notes from './Notes'
+import StatusSelect from './StatusSelect'
 import { appointmentEvents } from '../events/appointmentEvents'
 
 type StateType = {
@@ -65,7 +68,10 @@ const AppointmentsTable = () => {
   const [{ loading, error, appointments, count }, dispatch] = useReducer(reducer, initialState)
   const [search, setSearch] = useState<string>('')
   const [status, setStatus] = useState<'Scheduled' | 'Checked In' | 'Completed' | 'All'>('All')
+  const [selectedAppointmentId, setSelectedAppointmentId] = useState<number | null>(null)
   const debouncedSearch = useDebounce(search)
+
+  const selectedAppointment = appointments.find(({ id }) => id === selectedAppointmentId) ?? null
 
   useEffect(() => {
     const callApi = async () => {
@@ -135,8 +141,12 @@ const AppointmentsTable = () => {
               <div className='px-4 py-3 text-sm font-semibold text-gray-700'>Status</div>
             </div>
             {appointments.length !== 0
-              ? <VirtualizedWrapper appointments={appointments} />
-              : (
+              ? (
+                <VirtualizedWrapper
+                  appointments={appointments}
+                  onOpenNotes={setSelectedAppointmentId}
+                />
+              ) : (
                 <div className='px-4 py-10 text-center text-gray-500'>
                   No appointments found
                 </div>
@@ -145,6 +155,26 @@ const AppointmentsTable = () => {
           </div>
         )
       }
+      {selectedAppointment && (
+        <Modal title={selectedAppointment.patientName} onClose={() => setSelectedAppointmentId(null)}>
+          <dl className='grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm mb-4 pb-4 border-b border-gray-200'>
+            <dt className='text-gray-500'>Provider</dt>
+            <dd className='text-gray-900'>{selectedAppointment.provider}</dd>
+            <dt className='text-gray-500'>Time</dt>
+            <dd className='text-gray-900'>{selectedAppointment.time}</dd>
+            <dt className='text-gray-500'>Status</dt>
+            <dd className='text-gray-900'>
+              <StatusSelect
+                key={selectedAppointment.id}
+                appointmentId={selectedAppointment.id}
+                patientName={selectedAppointment.patientName}
+                status={selectedAppointment.status}
+              />
+            </dd>
+          </dl>
+          <Notes appointmentId={selectedAppointment.id} notes={selectedAppointment.notes} />
+        </Modal>
+      )}
     </div>
   )
 }

@@ -5,13 +5,14 @@ import TableRow from './TableRow'
 
 type Props = {
   appointments: Appointment[]
+  onOpenNotes: (appointmentId: number) => void
 }
 
 const ESTIMATED_ROW_HEIGHT = 52
 const VIEWPORT_HEIGHT = 600
 const OVERSCAN = 5
 
-export default function VirtualizedAppointments({ appointments }: Props) {
+export default function VirtualizedAppointments({ appointments, onOpenNotes }: Props) {
   const parentRef = useRef<HTMLDivElement>(null)
 
   const virtualizer = useVirtualizer({
@@ -37,7 +38,7 @@ export default function VirtualizedAppointments({ appointments }: Props) {
               transform: `translateY(${virtualRow.start}px)`,
             }}
           >
-            <TableRow appointment={appointments[virtualRow.index]} />
+            <TableRow appointment={appointments[virtualRow.index]} onOpenNotes={onOpenNotes} />
           </div>
         ))}
       </div>
