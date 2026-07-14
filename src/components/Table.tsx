@@ -1,4 +1,4 @@
-import { useState, useEffect, useReducer } from 'react'
+import { useState, useEffect, useReducer, useMemo } from 'react'
 import { getAppointments } from '../fetchApi'
 import { type Appointment } from '../types/Appointments'
 import { useDebounce } from '../hooks/useDebounce'
@@ -64,14 +64,33 @@ function reducer(state: StateType, action: ReducerTypes): StateType {
   }
 }
 
+type SortKey = 'patientName' | 'provider' | 'time' | 'status'
+type SortDirection = 'asc' | 'desc'
+
 const AppointmentsTable = () => {
   const [{ loading, error, appointments, count }, dispatch] = useReducer(reducer, initialState)
   const [search, setSearch] = useState<string>('')
   const [status, setStatus] = useState<'Scheduled' | 'Checked In' | 'Completed' | 'All'>('All')
   const [selectedAppointmentId, setSelectedAppointmentId] = useState<number | null>(null)
+  const [sort, setSort] = useState<{ key: SortKey, direction: SortDirection } | null>(null)
   const debouncedSearch = useDebounce(search)
 
   const selectedAppointment = appointments.find(({ id }) => id === selectedAppointmentId) ?? null
+
+  const sortedAppointments = useMemo(() => {
+    if (!sort) return appointments
+    const { key, direction } = sort
+    const multiplier = direction === 'asc' ? 1 : -1
+    return [...appointments].sort((a, b) => a[key].localeCompare(b[key]) * multiplier)
+  }, [appointments, sort])
+
+  const toggleSort = (key: SortKey) => {
+    setSort(current => {
+      if (current?.key !== key) return { key, direction: 'asc' }
+      if (current.direction === 'asc') return { key, direction: 'desc' }
+      return null
+    })
+  }
 
   useEffect(() => {
     const callApi = async () => {
@@ -135,15 +154,29 @@ const AppointmentsTable = () => {
         : (
           <div className='overflow-x-auto rounded-lg border border-gray-200 shadow-sm'>
             <div className={`${ROW_GRID_CLASS} bg-gray-50`}>
-              <div className='px-4 py-3 text-sm font-semibold text-gray-700'>Patient</div>
-              <div className='px-4 py-3 text-sm font-semibold text-gray-700'>Provider</div>
-              <div className='px-4 py-3 text-sm font-semibold text-gray-700'>Time</div>
-              <div className='px-4 py-3 text-sm font-semibold text-gray-700'>Status</div>
+              {([
+                ['patientName', 'Patient'],
+                ['provider', 'Provider'],
+                ['time', 'Time'],
+                ['status', 'Status'],
+              ] as [SortKey, string][]).map(([key, label]) => (
+                <button
+                  key={key}
+                  type='button'
+                  onClick={() => toggleSort(key)}
+                  className='px-4 py-3 text-sm font-semibold text-gray-700 flex items-center gap-1 text-left hover:bg-gray-100'
+                >
+                  {label}
+                  {sort?.key === key && (
+                    <span className='text-gray-400'>{sort.direction === 'asc' ? '▲' : '▼'}</span>
+                  )}
+                </button>
+              ))}
             </div>
             {appointments.length !== 0
               ? (
                 <VirtualizedWrapper
-                  appointments={appointments}
+                  appointments={sortedAppointments}
                   onOpenNotes={setSelectedAppointmentId}
                 />
               ) : (
