@@ -1,5 +1,6 @@
 import { type Appointment, type GetAppointmentsParams } from './types/Appointments'
 import { type Note, type NoteAttachment } from './types/Notes'
+import { isWithinDateRange } from './utils'
 
 const numOfAppointments = 5000
 
@@ -45,6 +46,7 @@ function generateAppointments(): Appointment[] {
         month: 'short',
         day: 'numeric',
         hour: 'numeric',
+        year: 'numeric',
         minute: '2-digit',
       }),
       status: statuses[i % statuses.length],
@@ -121,7 +123,8 @@ export function addNote(
   return Promise.resolve(savedNote)
 }
 
-export function getAppointments({ search, status: statusFilter }: GetAppointmentsParams) {
+export function getAppointments({ search, status: statusFilter, startDate, endDate }: GetAppointmentsParams) {
+
   const appointments = loadAppointments()
 
   let filtered = appointments
@@ -132,6 +135,11 @@ export function getAppointments({ search, status: statusFilter }: GetAppointment
       let byProvider = provider.toLowerCase().includes(search.toLowerCase())
       return (byPatient || byProvider)
     })
+  }
+
+  // null for both just means full dataset
+  if (startDate || endDate) {
+    filtered = filtered.filter(({ time }) => isWithinDateRange(time, startDate, endDate))
   }
 
   if (statusFilter !== 'All') {

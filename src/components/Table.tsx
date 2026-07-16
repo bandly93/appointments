@@ -1,13 +1,14 @@
-import { useState, useEffect, useReducer, useMemo } from 'react'
+import { useEffect, useReducer, useMemo, useState } from 'react'
 import { getAppointments } from '../fetchApi'
 import { type Appointment } from '../types/Appointments'
-import { useDebounce } from '../hooks/useDebounce'
 import { ROW_GRID_CLASS } from './TableRow'
 import VirtualizedWrapper from './VirtualizedWrapper'
 import Modal from './Modal'
 import Notes from './Notes'
 import StatusSelect from './StatusSelect'
 import { appointmentEvents } from '../events/appointmentEvents'
+import DateSelector from './DateSelector'
+import { useAppointmentFilters, type StatusFilter } from '../hooks/useAppointmentFilters'
 
 type StateType = {
   loading: boolean
@@ -69,11 +70,19 @@ type SortDirection = 'asc' | 'desc'
 
 const AppointmentsTable = () => {
   const [{ loading, error, appointments, count }, dispatch] = useReducer(reducer, initialState)
-  const [search, setSearch] = useState<string>('')
-  const [status, setStatus] = useState<'Scheduled' | 'Checked In' | 'Completed' | 'All'>('All')
+  const {
+    search,
+    setSearch,
+    debouncedSearch,
+    status,
+    setStatus,
+    startDate,
+    setStartDate,
+    endDate,
+    setEndDate,
+  } = useAppointmentFilters()
   const [selectedAppointmentId, setSelectedAppointmentId] = useState<number | null>(null)
   const [sort, setSort] = useState<{ key: SortKey, direction: SortDirection } | null>(null)
-  const debouncedSearch = useDebounce(search)
 
   const selectedAppointment = appointments.find(({ id }) => id === selectedAppointmentId) ?? null
 
@@ -96,14 +105,14 @@ const AppointmentsTable = () => {
     const callApi = async () => {
       dispatch({ type: 'FETCH_START' })
       try {
-        const { appointments, count } = await getAppointments({ search: debouncedSearch, status })
+        const { appointments, count } = await getAppointments({ search: debouncedSearch, status, startDate, endDate })
         dispatch({ type: 'FETCH_SUCCESS', payload: { appointments, count } })
       } catch (error) {
         dispatch({ type: 'FETCH_ERROR', payload: error as string })
       }
     }
     callApi()
-  }, [debouncedSearch, status])
+  }, [debouncedSearch, status, startDate, endDate])
 
   useEffect(() => {
     const unsubscribe = appointmentEvents.subscribe(
@@ -139,7 +148,7 @@ const AppointmentsTable = () => {
         <select
           value={status}
           onChange={e => {
-            setStatus(e.target.value as "Scheduled" | "Checked In" | "Completed" | "All")
+            setStatus(e.target.value as StatusFilter)
           }}
           className='rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
         >
@@ -148,6 +157,12 @@ const AppointmentsTable = () => {
           <option value='Completed'>Completed</option>
           <option value='All'>All</option>
         </select>
+        <DateSelector 
+          startDate={startDate} 
+          endDate={endDate} 
+          setStartDate={setStartDate} 
+          setEndDate={setEndDate} 
+        />
       </div>
       {loading
         ? <div className='py-10 text-center text-gray-500'>Loading....</div>

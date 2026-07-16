@@ -11,5 +11,7 @@ export type Appointment = {
 
 export interface GetAppointmentsParams {
   search: string,
-  status: "Scheduled" | "Checked In" | "Completed" | "All"
+  status: "Scheduled" | "Checked In" | "Completed" | "All",
+  startDate: string | null,
+  endDate: string | null
 }
