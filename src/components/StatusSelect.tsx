@@ -17,6 +17,18 @@ const statusBadgeClasses: Record<Appointment['status'], string> = {
   'Completed': 'bg-green-100 text-green-700',
 }
 
+export const statusDotClasses: Record<Appointment['status'], string> = {
+  'Scheduled': 'bg-blue-500',
+  'Checked In': 'bg-amber-500',
+  'Completed': 'bg-green-500',
+}
+
+export const statusAccentClasses: Record<Appointment['status'], string> = {
+  'Scheduled': 'border-l-blue-500',
+  'Checked In': 'border-l-amber-500',
+  'Completed': 'border-l-green-500',
+}
+
 export default function StatusSelect({ appointmentId, patientName, status: initialStatus }: Props) {
   const [status, setStatus] = useState<Appointment['status']>(initialStatus)
   const [updating, setUpdating] = useState<boolean>(false)

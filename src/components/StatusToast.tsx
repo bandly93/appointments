@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { appointmentEvents } from '../events/appointmentEvents'
+import { statusAccentClasses, statusDotClasses } from './StatusSelect'
 
 type AppointmentUpdatedPayload = {
   appointmentId: number
@@ -47,11 +48,14 @@ const StatusToast = () => {
       {toasts.map(toast => (
         <div
           key={toast.id}
-          className={`rounded-lg border border-gray-200 bg-white shadow-md px-4 py-3 text-sm transition-all duration-300 ease-out ${
-            toast.leaving ? 'opacity-0 translate-x-2' : 'opacity-100 translate-x-0'
+          className={`rounded-lg border border-l-4 border-gray-200 bg-white shadow-xl ring-1 ring-black/5 px-4 py-3 text-sm transition-all duration-300 ease-out ${
+            statusAccentClasses[toast.status as keyof typeof statusAccentClasses] ?? 'border-l-gray-300'
+          } ${
+            toast.leaving ? 'opacity-0 translate-x-2 scale-95' : 'animate-toast-in'
           }`}
         >
           <div className='text-gray-900'>
+            <span className={`inline-block h-2 w-2 rounded-full mr-1.5 align-middle ${statusDotClasses[toast.status as keyof typeof statusDotClasses] ?? 'bg-gray-400'}`} />
             <span className='font-medium'>{toast.patientName}</span>
             {toast.previousStatus ? (
               <> moved from <span className='font-medium'>{toast.previousStatus}</span> to{' '}

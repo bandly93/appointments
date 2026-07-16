@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { appointmentEvents } from '../events/appointmentEvents'
+import { statusAccentClasses, statusDotClasses } from './StatusSelect'
 
 type AppointmentUpdatedPayload = {
   appointmentId: number
@@ -45,14 +46,33 @@ const ActivityFeed = () => {
       ) : (
         <ul className='divide-y divide-gray-100 max-h-96 overflow-y-auto'>
           {items.map(item => (
-            <li key={item.id} className='px-4 py-3 text-sm'>
+            <li
+              key={item.id}
+              className={`px-4 py-3 text-sm border-l-4 ${statusAccentClasses[item.status as keyof typeof statusAccentClasses] ?? 'border-l-gray-200'}`}
+            >
               <div className='text-gray-900'>
                 <span className='font-medium'>{item.patientName}</span>
                 {item.previousStatus ? (
-                  <> moved from <span className='font-medium'>{item.previousStatus}</span> to{' '}
-                    <span className='font-medium'>{item.status}</span></>
+                  <>
+                    {' '}moved from{' '}
+                    <span className='font-medium whitespace-nowrap'>
+                      <span className={`inline-block h-1.5 w-1.5 rounded-full mr-1 align-middle ${statusDotClasses[item.previousStatus as keyof typeof statusDotClasses] ?? 'bg-gray-400'}`} />
+                      {item.previousStatus}
+                    </span>{' '}
+                    to{' '}
+                    <span className='font-medium whitespace-nowrap'>
+                      <span className={`inline-block h-1.5 w-1.5 rounded-full mr-1 align-middle ${statusDotClasses[item.status as keyof typeof statusDotClasses] ?? 'bg-gray-400'}`} />
+                      {item.status}
+                    </span>
+                  </>
                 ) : (
-                  <> updated to <span className='font-medium'>{item.status}</span></>
+                  <>
+                    {' '}updated to{' '}
+                    <span className='font-medium whitespace-nowrap'>
+                      <span className={`inline-block h-1.5 w-1.5 rounded-full mr-1 align-middle ${statusDotClasses[item.status as keyof typeof statusDotClasses] ?? 'bg-gray-400'}`} />
+                      {item.status}
+                    </span>
+                  </>
                 )}
               </div>
               <div className='text-xs text-gray-500 mt-0.5'>
