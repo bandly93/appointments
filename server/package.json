@@ -1,0 +1,37 @@
+{
+  "name": "appointment-server",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc -b",
+    "start": "node dist/index.js",
+    "db:up": "docker compose -f ../docker-compose.yml up -d",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:seed": "prisma db seed"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
+  "dependencies": {
+    "express": "^5.1.0",
+    "@prisma/client": "^6.16.3",
+    "bcrypt": "^6.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "prisma": "^6.16.3",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "@types/express": "^5.0.0",
+    "@types/bcrypt": "^5.0.2",
+    "@types/jsonwebtoken": "^9.0.7",
+    "@types/cookie-parser": "^1.4.8",
+    "@types/cors": "^2.8.17",
+    "@types/node": "^22.10.5"
+  }
+}
