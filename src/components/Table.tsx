@@ -80,6 +80,7 @@ const AppointmentsTable = () => {
     setStartDate,
     endDate,
     setEndDate,
+    clearFilters,
   } = useAppointmentFilters()
   const [selectedAppointmentId, setSelectedAppointmentId] = useState<number | null>(null)
   const [sort, setSort] = useState<{ key: SortKey, direction: SortDirection } | null>(null)
@@ -145,24 +146,37 @@ const AppointmentsTable = () => {
           placeholder='Search by patient name or provider'
           className='flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
         />
-        <select
-          value={status}
-          onChange={e => {
-            setStatus(e.target.value as StatusFilter)
-          }}
-          className='rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
-        >
-          <option value='Scheduled'>Scheduled</option>
-          <option value='Checked In'>Checked In</option>
-          <option value='Completed'>Completed</option>
-          <option value='All'>All</option>
-        </select>
-        <DateSelector 
-          startDate={startDate} 
-          endDate={endDate} 
-          setStartDate={setStartDate} 
-          setEndDate={setEndDate} 
+        <div className='flex items-center gap-2'>
+          <label htmlFor='status-filter' className='text-sm font-medium text-gray-700 whitespace-nowrap'>
+            Status
+          </label>
+          <select
+            id='status-filter'
+            value={status}
+            onChange={e => {
+              setStatus(e.target.value as StatusFilter)
+            }}
+            className='rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+          >
+            <option value='Scheduled'>Scheduled</option>
+            <option value='Checked In'>Checked In</option>
+            <option value='Completed'>Completed</option>
+            <option value='All'>All</option>
+          </select>
+        </div>
+        <DateSelector
+          startDate={startDate}
+          endDate={endDate}
+          setStartDate={setStartDate}
+          setEndDate={setEndDate}
         />
+        <button
+          type='button'
+          onClick={clearFilters}
+          className='rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm text-gray-700 hover:bg-gray-50 whitespace-nowrap'
+        >
+          Clear filters
+        </button>
       </div>
       {loading
         ? <div className='py-10 text-center text-gray-500'>Loading....</div>

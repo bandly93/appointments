@@ -10,6 +10,13 @@ export const useAppointmentFilters = () => {
   const [endDate, setEndDate] = useState<string | null>(null)
   const debouncedSearch = useDebounce(search)
 
+  const clearFilters = () => {
+    setSearch('')
+    setStatus('All')
+    setStartDate(null)
+    setEndDate(null)
+  }
+
   return {
     search,
     setSearch,
@@ -20,5 +27,6 @@ export const useAppointmentFilters = () => {
     setStartDate,
     endDate,
     setEndDate,
+    clearFilters,
   }
 }
