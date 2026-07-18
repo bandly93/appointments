@@ -2,10 +2,15 @@ import express, { type Express, type Request, type Response } from 'express';
 import cors from 'cors'
 import authRouter from './routes/authRoutes.js'
 
-const app: Express = express();
-const port = 3000;
+process.loadEnvFile()
 
-app.use(cors());
+const app: Express = express();
+const port = process.env.PORT ?? 3000;
+
+app.use(cors({
+  origin: process.env.CORS_ORIGIN,
+  credentials: true
+}));
 app.use(express.json());
 
 app.use('/api/auth', authRouter);
