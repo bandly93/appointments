@@ -5,3 +5,4 @@ dist-ssr
 .DS_Store
 server/.env
 server/dist
+client/.env
