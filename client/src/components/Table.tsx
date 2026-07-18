@@ -35,13 +35,13 @@ function reducer(state: StateType, action: ReducerTypes): StateType {
     case 'FETCH_START':
       return { ...state, loading: true, error: null }
     case 'FETCH_SUCCESS':
-      return { 
-        ...state, 
+      return {
+        ...state,
         loading: false,
         error: null,
-        appointments: action.payload.appointments, 
-        count: action.payload.count 
-    }
+        appointments: action.payload.appointments,
+        count: action.payload.count
+      }
     case 'FETCH_ERROR':
       return { ...state, loading: false, error: action.payload }
     case 'APPOINTMENT_UPDATED': {
