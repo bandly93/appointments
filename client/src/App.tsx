@@ -1,14 +1,29 @@
-import AppointmentsTable from "./components/Table"
-import ActivityFeed from "./components/ActivityFeed"
-import StatusToast from "./components/StatusToast"
+import { useState } from "react"
+import { Navigate, Route, Routes } from "react-router-dom"
+import Login from "./pages/Login"
+import Dashboard from "./pages/Dashboard"
 
 function App() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+
   return (
-    <div className='flex flex-col lg:flex-row gap-6 p-6'>
-      <ActivityFeed />
-      <AppointmentsTable />
-      <StatusToast />
-    </div>
+    <Routes>
+      <Route
+        path='/login'
+        element={
+          isLoggedIn ? (
+            <Navigate to='/' replace />
+          ) : (
+            <Login onSuccess={() => setIsLoggedIn(true)} />
+          )
+        }
+      />
+      <Route
+        path='/'
+        element={isLoggedIn ? <Dashboard /> : <Navigate to='/login' replace />}
+      />
+      <Route path='*' element={<Navigate to='/' replace />} />
+    </Routes>
   )
 }
 
