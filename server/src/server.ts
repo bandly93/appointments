@@ -1,6 +1,8 @@
+// src/server.ts
+import "dotenv/config";
 import express, { type Express, type Request, type Response } from 'express';
 import cors from 'cors'
-import authRouter from './routes/authRoutes.js'
+import authRouter from './auth/auth.routes.js'
 
 process.loadEnvFile()
 
