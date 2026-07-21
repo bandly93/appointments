@@ -29,3 +29,18 @@ export function createSession(
   });
 }
 
+export function findSessionByTokenHash(tokenHash: string) {
+  return prisma.session.findUnique({
+    where: { tokenHash },
+    include: { user: { select: { id: true, email: true, role: true } } },
+  });
+}
+
+export function deleteSessionByTokenHash(tokenHash: string) {
+  return prisma.session.deleteMany({ where: { tokenHash } });
+}
+
+export function deleteSessionById(id: string) {
+  return prisma.session.deleteMany({ where: { id } });
+}
+

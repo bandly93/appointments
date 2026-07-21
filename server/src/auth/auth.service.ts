@@ -3,7 +3,7 @@ import { z } from "zod";
 import { verifyPassword } from "./password.js";
 import { findUserByEmail } from "./auth.repository.js";
 import { signAccessToken } from "./jwt.js";
-import { createSession } from "./sessions.js";
+import { createSession, rotateSession, endSession, InvalidSessionError } from "./sessions.js";
 
 const loginSchema = z.object({
   email: z.string().trim().min(1),
@@ -43,4 +43,26 @@ export async function loginUser(rawInput: unknown) {
     expiresAt,
     user: { id: user.id, email: user.email, role: user.role },
   };
+}
+
+export async function refreshSession(refreshToken: string | undefined) {
+  if (!refreshToken) {
+    throw new InvalidSessionError();
+  }
+
+  const { token, expiresAt, user } = await rotateSession(refreshToken);
+  const accessToken = signAccessToken({ sub: user.id, role: user.role });
+
+  return {
+    accessToken,
+    refreshToken: token,
+    expiresAt,
+    user: { id: user.id, email: user.email, role: user.role },
+  };
+}
+
+export async function logoutUser(refreshToken: string | undefined) {
+  if (refreshToken) {
+    await endSession(refreshToken);
+  }
 }

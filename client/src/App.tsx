@@ -5,13 +5,13 @@ import ProtectedRoute from "./components/Router/ProtectedRoutes"
 import { useAuth } from "./auth/AuthContext"
 
 function App() {
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, isLoading } = useAuth()
 
   return (
     <Routes>
       <Route
         path='/login'
-        element={isAuthenticated ? <Navigate to='/' replace /> : <Login />}
+        element={isLoading ? null : isAuthenticated ? <Navigate to='/' replace /> : <Login />}
       />
       <Route element={<ProtectedRoute />}>
         <Route path='/' element={<Dashboard />} />

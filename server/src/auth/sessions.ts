@@ -2,7 +2,18 @@
 import crypto from "node:crypto";
 import type { Response } from "express";
 import { env } from "../config/env.js";
-import { createSession as insertSession } from "./auth.repository.js";
+import {
+  createSession as insertSession,
+  findSessionByTokenHash,
+  deleteSessionById,
+  deleteSessionByTokenHash,
+} from "./auth.repository.js";
+
+export class InvalidSessionError extends Error {
+  constructor() {
+    super("INVALID_SESSION");
+  }
+}
 
 const SESSION_COOKIE = "refresh_token";
 const REFRESH_TOKEN_TTL_MS = parseDuration(env.REFRESH_TOKEN_TTL);
@@ -45,5 +56,40 @@ export function setSessionCookie(res: Response, token: string, expiresAt: Date) 
     expires: expiresAt,
     path: "/api/auth",
   });
+}
+
+// Must mirror setSessionCookie's httpOnly/secure/sameSite/path exactly, or the
+// browser treats it as a different cookie and won't clear the original.
+export function clearSessionCookie(res: Response) {
+  res.clearCookie(SESSION_COOKIE, {
+    httpOnly: true,
+    secure: env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/api/auth",
+  });
+}
+
+// Rotation is delete-then-create, not atomic: two concurrent refreshes using
+// the same pre-rotation token will race, and the loser correctly gets
+// InvalidSessionError. The client dedupes concurrent refresh calls to a
+// single in-flight request specifically to avoid triggering this.
+export async function rotateSession(refreshToken: string) {
+  const tokenHash = hashToken(refreshToken);
+  const session = await findSessionByTokenHash(tokenHash);
+
+  if (!session || session.expiresAt.getTime() <= Date.now()) {
+    if (session) await deleteSessionById(session.id);
+    throw new InvalidSessionError();
+  }
+
+  await deleteSessionById(session.id);
+  const next = await createSession(session.userId);
+
+  return { ...next, user: session.user };
+}
+
+export async function endSession(refreshToken: string) {
+  const tokenHash = hashToken(refreshToken);
+  await deleteSessionByTokenHash(tokenHash);
 }
 
