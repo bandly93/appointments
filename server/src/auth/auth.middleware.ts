@@ -25,3 +25,11 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
     return res.status(401).json({ error: "Unauthorized" });
   }
 }
+
+export function requireAdmin(req: Request, res: Response, next: NextFunction) {
+  if (req.user?.role !== "ADMIN") {
+    return res.status(403).json({ error: "Forbidden" });
+  }
+
+  next();
+}
