@@ -1,0 +1,5 @@
+-- RenameEnumValue
+ALTER TYPE "UserRole" RENAME VALUE 'USER' TO 'STAFF';
+
+-- AlterTable
+ALTER TABLE "User" ALTER COLUMN "role" SET DEFAULT 'STAFF';
