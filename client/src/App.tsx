@@ -1,27 +1,21 @@
-import { useState } from "react"
 import { Navigate, Route, Routes } from "react-router-dom"
 import Login from "./pages/Login"
 import Dashboard from "./pages/Dashboard"
+import ProtectedRoute from "./components/Router/ProtectedRoutes"
+import { useAuth } from "./auth/AuthContext"
 
 function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const { isAuthenticated } = useAuth()
 
   return (
     <Routes>
       <Route
         path='/login'
-        element={
-          isLoggedIn ? (
-            <Navigate to='/' replace />
-          ) : (
-            <Login onSuccess={() => setIsLoggedIn(true)} />
-          )
-        }
+        element={isAuthenticated ? <Navigate to='/' replace /> : <Login />}
       />
-      <Route
-        path='/'
-        element={isLoggedIn ? <Dashboard /> : <Navigate to='/login' replace />}
-      />
+      <Route element={<ProtectedRoute />}>
+        <Route path='/' element={<Dashboard />} />
+      </Route>
       <Route path='*' element={<Navigate to='/' replace />} />
     </Routes>
   )

@@ -9,11 +9,7 @@
     "build": "tsc -b",
     "start": "node dist/server.js",
     "db:up": "docker compose -f ../docker-compose.yml up -d",
-    "prisma:migrate": "prisma migrate dev",
-    "prisma:seed": "prisma db seed"
-  },
-  "prisma": {
-    "seed": "tsx prisma/seed.ts"
+    "prisma:migrate": "prisma migrate dev"
   },
   "dependencies": {
     "@prisma/client": "^7.9.0",

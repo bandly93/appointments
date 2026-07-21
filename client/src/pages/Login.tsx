@@ -1,17 +1,8 @@
 import { useState, type SubmitEvent } from 'react'
+import { useAuth } from '../auth/AuthContext'
 
-type LoginResponse = {
-  success: boolean
-  message: string
-}
-
-type Props = {
-  onSuccess?: (data: LoginResponse) => void
-}
-
-const API_URL = import.meta.env.VITE_API_URL
-
-export default function Login({ onSuccess }: Props) {
+export default function Login() {
+  const { login } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -23,21 +14,7 @@ export default function Login({ onSuccess }: Props) {
     setError(null)
 
     try {
-      const res = await fetch(`${API_URL}/api/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ email, password }),
-      })
-
-      const data: LoginResponse = await res.json()
-
-      if (!res.ok || !data.success) {
-        setError(data.message || 'Login failed')
-        return
-      }
-
-      onSuccess?.(data)
+      await login(email, password)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
     } finally {
