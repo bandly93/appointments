@@ -1,35 +1,21 @@
 import { Request, Response } from 'express';
-import { verifyPassword } from './password.js';
-import { prisma } from "../lib/prisma.js";
+import { loginUser } from './auth.service.js';
+import { setSessionCookie } from './sessions.js';
 
 export async function login(req: Request, res: Response) {
-  const { email, password } = req.body;
+  try {
+    const { accessToken, refreshToken, expiresAt, user } = await loginUser(req.body);
 
-  const user = await prisma.user.findUnique({
-    where: {
-      email: email.trim().toLowerCase()
+    setSessionCookie(res, refreshToken, expiresAt);
+
+    res.json({ success: true, accessToken, user });
+  } catch (err) {
+    if (err instanceof Error && err.message === 'INVALID_CREDENTIALS') {
+      return res.status(401).json({ error: 'Invalid email or password' });
     }
-  })
-
-  if (!user) {
-    return res.status(401).json({
-      error: 'Invalid email or password',
-    });
+    if (err instanceof Error && err.message === 'INVALID_INPUT') {
+      return res.status(400).json({ error: 'Email and password are required' });
+    }
+    throw err;
   }
-
-  const passwordIsValid = await verifyPassword(
-    user.passwordHash,
-    password
-  );
-
-  if (!passwordIsValid) {
-    return res.status(401).json({
-      error: 'Invalid email or password',
-    });
-  }
-  
-  res.json({
-    success: true,
-    message: 'Login successful',
-  });
 }

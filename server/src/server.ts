@@ -1,7 +1,8 @@
 // src/server.ts
 import "dotenv/config";
-import express, { type Express, type Request, type Response } from 'express';
+import express, { type Express } from 'express';
 import cors from 'cors'
+import cookieParser from 'cookie-parser'
 import authRouter from './auth/auth.routes.js'
 
 process.loadEnvFile()
@@ -13,7 +14,9 @@ app.use(cors({
   origin: process.env.CORS_ORIGIN,
   credentials: true
 }));
+
 app.use(express.json());
+app.use(cookieParser());
 
 app.use('/api/auth', authRouter);
 

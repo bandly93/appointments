@@ -1,4 +1,4 @@
-import { type Request, type Response, Router } from 'express'
+import { Router } from 'express'
 import { login } from './auth.controller.js'
 
 const router = Router()

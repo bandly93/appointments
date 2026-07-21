@@ -1,25 +1,31 @@
 // src/auth/auth.repository.ts
 import { prisma } from "../lib/prisma.js";
 
-export function findUserByEmail(email: string) {
+export function findUserByEmail(
+  email: string
+) {
   return prisma.user.findUnique({
     where: { email },
+    select: { 
+      id: true,
+      email: true,
+      passwordHash: true,
+      role: true
+    }
   });
 }
 
-export function createUser(
-  email: string,
-  passwordHash: string,
+type CreateSessionData = {
+  userId: string;
+  tokenHash: string;
+  expiresAt: Date;
+};
+
+export function createSession(
+  { userId, tokenHash, expiresAt }: CreateSessionData
 ) {
-  return prisma.user.create({
-    data: {
-      email,
-      passwordHash,
-    },
-    select: {
-      id: true,
-      email: true,
-      createdAt: true,
-    },
+  return prisma.session.create({
+    data: { userId, tokenHash, expiresAt },
   });
 }
+
