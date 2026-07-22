@@ -13,13 +13,40 @@ enum UserRole {
   ADMIN
 }
 
+enum DayOfWeek {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
+}
+
+enum BookingStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum AppointmentStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+}
+
 model User {
   id           String   @id @default(cuid())
   email        String   @unique
   passwordHash String
   role         UserRole @default(STAFF)
+  displayName  String?
 
-  sessions Session[]
+  sessions          Session[]
+  availabilityRules AvailabilityRule[]
+  bookingRequests   BookingRequest[]
+  appointments      Appointment[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -37,4 +64,81 @@ model Session {
 
   @@index([userId])
   @@index([expiresAt])
+}
+
+model AvailabilityRule {
+  id         String @id @default(cuid())
+  providerId String
+  provider   User   @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  dayOfWeek           DayOfWeek
+  startMinute         Int
+  endMinute           Int
+  slotDurationMinutes Int       @default(30)
+  timezone            String
+
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([providerId])
+}
+
+model Patient {
+  id    String  @id @default(cuid())
+  email String  @unique
+  name  String
+  phone String?
+
+  bookingRequests BookingRequest[]
+  appointments    Appointment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model BookingRequest {
+  id         String  @id @default(cuid())
+  providerId String
+  provider   User    @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  patientId  String
+  patient    Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  startsAt DateTime
+  endsAt   DateTime
+  status   BookingStatus @default(PENDING)
+  notes    String?
+
+  accessTokenHash String @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  appointment Appointment?
+
+  @@index([providerId, startsAt])
+  @@index([patientId])
+}
+
+model Appointment {
+  id         String  @id @default(cuid())
+  providerId String
+  provider   User    @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  patientId  String
+  patient    Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  bookingRequestId String?         @unique
+  bookingRequest   BookingRequest? @relation(fields: [bookingRequestId], references: [id], onDelete: SetNull)
+
+  startsAt DateTime
+  endsAt   DateTime
+  status   AppointmentStatus @default(SCHEDULED)
+  notes    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([providerId, startsAt])
+  @@index([patientId])
 }
