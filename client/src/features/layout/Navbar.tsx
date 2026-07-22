@@ -25,6 +25,11 @@ const Navbar = () => {
               Users
             </Link>
           )}
+          {(user?.role === 'STAFF' || user?.role === 'ADMIN') && (
+            <Link to='/booking-requests' className={navLinkClasses(pathname.startsWith('/booking-requests'))}>
+              Booking Requests
+            </Link>
+          )}
           {user?.role === 'PROVIDER' && (
             <Link to='/my-availability' className={navLinkClasses(pathname.startsWith('/my-availability'))}>
               My Availability

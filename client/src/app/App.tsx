@@ -5,6 +5,7 @@ import Users from "../features/users/pages/Users"
 import ProtectedRoute from "../features/auth/components/ProtectedRoute"
 import AdminRoute from "../features/auth/components/AdminRoute"
 import RoleRoute from "../features/auth/components/RoleRoute"
+import BookingRequests from "../features/bookingRequests/pages/BookingRequests"
 import AvailabilityManager from "../features/availability/pages/AvailabilityManager"
 import { useAuth } from "../features/auth/AuthContext"
 
@@ -21,6 +22,9 @@ function App() {
         <Route path='/' element={<Dashboard />} />
         <Route element={<AdminRoute />}>
           <Route path='/admin/users' element={<Users />} />
+        </Route>
+        <Route element={<RoleRoute roles={['STAFF', 'ADMIN']} />}>
+          <Route path='/booking-requests' element={<BookingRequests />} />
         </Route>
         <Route element={<RoleRoute roles={['PROVIDER']} />}>
           <Route path='/my-availability' element={<AvailabilityManager />} />
