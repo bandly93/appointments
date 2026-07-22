@@ -12,7 +12,7 @@ const RoleRoute = ({ roles }: Props) => {
     return null
   }
 
-  return user && roles.includes(user.role) ? <Outlet /> : <Navigate to='/' replace />
+  return user && roles.includes(user.role) ? <Outlet /> : <Navigate to='/dashboard' replace />
 }
 
 export default RoleRoute

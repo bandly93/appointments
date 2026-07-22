@@ -13,11 +13,11 @@ const Navbar = () => {
   return (
     <header className='flex items-center justify-between border-b border-gray-200 px-6 py-3'>
       <div className='flex items-center gap-6'>
-        <Link to='/' className='text-sm font-semibold text-gray-900'>
+        <Link to='/dashboard' className='text-sm font-semibold text-gray-900'>
           Appointments
         </Link>
         <nav className='flex items-center gap-1'>
-          <Link to='/' className={navLinkClasses(pathname === '/')}>
+          <Link to='/dashboard' className={navLinkClasses(pathname === '/dashboard')}>
             Dashboard
           </Link>
           {user?.role === 'ADMIN' && (

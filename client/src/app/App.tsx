@@ -5,8 +5,10 @@ import Users from "../features/users/pages/Users"
 import ProtectedRoute from "../features/auth/components/ProtectedRoute"
 import AdminRoute from "../features/auth/components/AdminRoute"
 import RoleRoute from "../features/auth/components/RoleRoute"
+import Landing from "../features/landing/pages/Landing"
 import BookingPage from "../features/booking/pages/BookingPage"
 import MyBookingPage from "../features/booking/pages/MyBookingPage"
+import ProvidersList from "../features/booking/pages/ProvidersList"
 import BookingRequests from "../features/bookingRequests/pages/BookingRequests"
 import AvailabilityManager from "../features/availability/pages/AvailabilityManager"
 import { useAuth } from "../features/auth/AuthContext"
@@ -17,16 +19,21 @@ function App() {
   return (
     <Routes>
       <Route
+        path='/'
+        element={isLoading ? null : isAuthenticated ? <Navigate to='/dashboard' replace /> : <Landing />}
+      />
+      <Route
         path='/login'
-        element={isLoading ? null : isAuthenticated ? <Navigate to='/' replace /> : <Login />}
+        element={isLoading ? null : isAuthenticated ? <Navigate to='/dashboard' replace /> : <Login />}
       />
       {/* public routes */}
+      <Route path='/providers' element={<ProvidersList />} />
       <Route path='/book/:providerId' element={<BookingPage />} />
       <Route path='/my-booking/:requestId' element={<MyBookingPage />} />
 
       {/* non-public routes */}
       <Route element={<ProtectedRoute />}>
-        <Route path='/' element={<Dashboard />} />
+        <Route path='/dashboard' element={<Dashboard />} />
         <Route element={<AdminRoute />}>
           <Route path='/admin/users' element={<Users />} />
         </Route>
