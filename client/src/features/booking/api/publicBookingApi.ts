@@ -2,15 +2,20 @@ import { type Slot, type Provider, type MyBookingRequest, type PatientInput } fr
 
 const API_URL = import.meta.env.VITE_API_URL
 
-export async function getProvider(providerId: string): Promise<Provider | undefined> {
+export async function getProviders(): Promise<Provider[]> {
   const res = await fetch(`${API_URL}/api/public/providers`)
   const data = await res.json()
 
   if (!res.ok) {
-    throw new Error(data.error || 'Failed to load provider')
+    throw new Error(data.error || 'Failed to load providers')
   }
 
-  return (data.providers as Provider[]).find((p) => p.id === providerId)
+  return data.providers
+}
+
+export async function getProvider(providerId: string): Promise<Provider | undefined> {
+  const providers = await getProviders()
+  return providers.find((p) => p.id === providerId)
 }
 
 export async function getSlots(providerId: string, from: string, to: string): Promise<Slot[]> {
@@ -42,6 +47,32 @@ export async function createBookingRequest(input: {
   }
 
   return { id: data.bookingRequest.id, accessToken: data.accessToken }
+}
+
+export async function verifyBookingRequest(id: string, token: string, code: string): Promise<MyBookingRequest> {
+  const res = await fetch(`${API_URL}/api/public/booking-requests/${id}/verify?token=${encodeURIComponent(token)}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ code }),
+  })
+  const data = await res.json()
+
+  if (!res.ok) {
+    throw new Error(data.error || 'Failed to verify code')
+  }
+
+  return data.bookingRequest
+}
+
+export async function resendVerificationCode(id: string, token: string): Promise<void> {
+  const res = await fetch(`${API_URL}/api/public/booking-requests/${id}/resend-code?token=${encodeURIComponent(token)}`, {
+    method: 'POST',
+  })
+
+  if (!res.ok) {
+    const data = await res.json()
+    throw new Error(data.error || 'Failed to resend code')
+  }
 }
 
 export async function getMyBooking(id: string, token: string): Promise<MyBookingRequest> {

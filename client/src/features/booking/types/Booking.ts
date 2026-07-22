@@ -8,7 +8,7 @@ export type Provider = {
   displayName: string | null
 }
 
-export type BookingStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED'
+export type BookingStatus = 'UNVERIFIED' | 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED' | 'EXPIRED'
 
 export type MyBookingRequest = {
   id: string

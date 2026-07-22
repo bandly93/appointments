@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
 import { getMyBooking, updateMyBooking, cancelMyBooking } from '../api/publicBookingApi'
 import { type MyBookingRequest } from '../types/Booking'
+import VerifyCodeForm from '../components/VerifyCodeForm'
 
 export default function MyBookingPage() {
   const { requestId } = useParams<{ requestId: string }>()
@@ -94,7 +95,23 @@ export default function MyBookingPage() {
         </div>
       )}
 
-      {booking.status === 'PENDING'
+      {booking.status === 'UNVERIFIED' && (
+        <div className='mb-4'>
+          <VerifyCodeForm
+            bookingId={booking.id}
+            token={token}
+            onVerified={(updated) => setBooking(updated)}
+          />
+        </div>
+      )}
+
+      {booking.status === 'EXPIRED' && (
+        <p className='text-sm text-gray-500'>
+          This request expired before the email was confirmed. Please submit a new booking request.
+        </p>
+      )}
+
+      {(booking.status === 'UNVERIFIED' || booking.status === 'PENDING')
         ? (
           <div>
             <div className='mb-4'>
@@ -129,7 +146,7 @@ export default function MyBookingPage() {
             </div>
           </div>
         )
-        : (
+        : booking.status !== 'EXPIRED' && (
           <p className='text-sm text-gray-500'>This request can no longer be edited or cancelled.</p>
         )
       }

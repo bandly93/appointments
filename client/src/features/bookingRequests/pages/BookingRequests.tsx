@@ -4,7 +4,7 @@ import { getBookingRequests, approveBookingRequest, rejectBookingRequest, delete
 import { type BookingRequest, type BookingStatus } from '../types/BookingRequest'
 import Navbar from '../../layout/Navbar'
 
-const STATUSES: (BookingStatus | 'All')[] = ['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED', 'All']
+const STATUSES: (BookingStatus | 'All')[] = ['PENDING', 'UNVERIFIED', 'APPROVED', 'REJECTED', 'CANCELLED', 'EXPIRED', 'All']
 
 export default function BookingRequests() {
   const { authFetch } = useAuth()

@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom'
 import { getProvider, getSlots, createBookingRequest } from '../api/publicBookingApi'
 import { type Slot, type Provider } from '../types/Booking'
 import Modal from '../../../shared/components/Modal'
+import VerifyCodeForm from '../components/VerifyCodeForm'
 
 function todayDateString(): string {
   return new Date().toISOString().slice(0, 10)
@@ -16,7 +17,8 @@ export default function BookingPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null)
-  const [confirmation, setConfirmation] = useState<{ id: string; accessToken: string } | null>(null)
+  const [booking, setBooking] = useState<{ id: string; accessToken: string } | null>(null)
+  const [verified, setVerified] = useState(false)
 
   useEffect(() => {
     if (!providerId) return
@@ -38,8 +40,20 @@ export default function BookingPage() {
     return <div className='p-6 text-center text-gray-500'>Provider not found</div>
   }
 
-  if (confirmation) {
-    const link = `${window.location.origin}/my-booking/${confirmation.id}?token=${confirmation.accessToken}`
+  if (booking && !verified) {
+    return (
+      <div className='w-full max-w-xl mx-auto p-6'>
+        <VerifyCodeForm
+          bookingId={booking.id}
+          token={booking.accessToken}
+          onVerified={() => setVerified(true)}
+        />
+      </div>
+    )
+  }
+
+  if (booking && verified) {
+    const link = `${window.location.origin}/my-booking/${booking.id}?token=${booking.accessToken}`
     return (
       <div className='w-full max-w-xl mx-auto p-6'>
         <div className='rounded-lg border border-green-200 bg-green-50 p-6'>
@@ -120,7 +134,7 @@ export default function BookingPage() {
           slot={selectedSlot}
           onClose={() => setSelectedSlot(null)}
           onBooked={(result) => {
-            setConfirmation(result)
+            setBooking(result)
             setSelectedSlot(null)
           }}
         />
