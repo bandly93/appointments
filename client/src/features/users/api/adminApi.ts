@@ -1,10 +1,10 @@
-import { type AdminUser, type Role } from '../types/User'
+import { type User, type Role } from '../types/User'
 
 const API_URL = import.meta.env.VITE_API_URL
 
 type AuthFetch = (input: RequestInfo, init?: RequestInit) => Promise<Response>
 
-export async function getUsers(authFetch: AuthFetch): Promise<AdminUser[]> {
+export async function getUsers(authFetch: AuthFetch): Promise<User[]> {
   const res = await authFetch(`${API_URL}/api/admin/users`)
   const data = await res.json()
 
@@ -18,7 +18,7 @@ export async function getUsers(authFetch: AuthFetch): Promise<AdminUser[]> {
 export async function createUser(
   authFetch: AuthFetch,
   input: { email: string, password: string, role: Role }
-): Promise<AdminUser> {
+): Promise<User> {
   const res = await authFetch(`${API_URL}/api/admin/users`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
