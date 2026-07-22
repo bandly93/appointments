@@ -5,6 +5,8 @@ import Users from "../features/users/pages/Users"
 import ProtectedRoute from "../features/auth/components/ProtectedRoute"
 import AdminRoute from "../features/auth/components/AdminRoute"
 import RoleRoute from "../features/auth/components/RoleRoute"
+import BookingPage from "../features/booking/pages/BookingPage"
+import MyBookingPage from "../features/booking/pages/MyBookingPage"
 import BookingRequests from "../features/bookingRequests/pages/BookingRequests"
 import AvailabilityManager from "../features/availability/pages/AvailabilityManager"
 import { useAuth } from "../features/auth/AuthContext"
@@ -18,6 +20,11 @@ function App() {
         path='/login'
         element={isLoading ? null : isAuthenticated ? <Navigate to='/' replace /> : <Login />}
       />
+      {/* public routes */}
+      <Route path='/book/:providerId' element={<BookingPage />} />
+      <Route path='/my-booking/:requestId' element={<MyBookingPage />} />
+
+      {/* non-public routes */}
       <Route element={<ProtectedRoute />}>
         <Route path='/' element={<Dashboard />} />
         <Route element={<AdminRoute />}>
