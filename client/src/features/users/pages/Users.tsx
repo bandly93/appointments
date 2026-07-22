@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
 import { useAuth } from '../../auth/AuthContext'
 import { getUsers, createUser } from '../api/adminApi'
 import { type User, type Role } from '../types/User'
 import Modal from '../../../shared/components/Modal'
+import Navbar from '../../layout/Navbar'
 
 export default function Users() {
   const { authFetch } = useAuth()
@@ -31,65 +31,65 @@ export default function Users() {
   }, [])
 
   return (
-    <div className='w-full max-w-5xl mx-auto p-6'>
-      <div className='flex items-center justify-between mb-4'>
-        <div>
-          <Link to='/' className='text-sm text-blue-600 hover:underline'>&larr; Back to dashboard</Link>
-          <h1 className='text-2xl font-semibold text-gray-900 mt-1'>Users ({users.length})</h1>
+    <div className='flex flex-col'>
+      <Navbar />
+      <div className='w-full max-w-5xl mx-auto p-6'>
+        <div className='flex items-center justify-between mb-4'>
+          <h1 className='text-2xl font-semibold text-gray-900'>Users ({users.length})</h1>
+          <button
+            type='button'
+            onClick={() => setIsModalOpen(true)}
+            className='rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-500'
+          >
+            Create user
+          </button>
         </div>
-        <button
-          type='button'
-          onClick={() => setIsModalOpen(true)}
-          className='rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-500'
-        >
-          Create user
-        </button>
-      </div>
 
-      {error && (
-        <div className='mb-4 rounded-md bg-red-50 border border-red-200 text-red-700 px-4 py-2 text-sm'>
-          {error}
-        </div>
-      )}
-
-      {loading
-        ? <div className='py-10 text-center text-gray-500'>Loading....</div>
-        : (
-          <div className='overflow-x-auto rounded-lg border border-gray-200 shadow-sm'>
-            <div className='grid grid-cols-[1fr_120px_180px] bg-gray-50'>
-              <div className='px-4 py-3 text-sm font-semibold text-gray-700'>Email</div>
-              <div className='px-4 py-3 text-sm font-semibold text-gray-700'>Role</div>
-              <div className='px-4 py-3 text-sm font-semibold text-gray-700'>Created</div>
-            </div>
-            {users.length !== 0
-              ? users.map((user) => (
-                <div key={user.id} className='grid grid-cols-[1fr_120px_180px] border-t border-gray-200'>
-                  <div className='px-4 py-3 text-sm text-gray-900'>{user.email}</div>
-                  <div className='px-4 py-3 text-sm text-gray-700'>{user.role}</div>
-                  <div className='px-4 py-3 text-sm text-gray-500'>
-                    {new Date(user.createdAt).toLocaleDateString()}
-                  </div>
-                </div>
-              ))
-              : (
-                <div className='px-4 py-10 text-center text-gray-500'>
-                  No users found
-                </div>
-              )
-            }
+        {error && (
+          <div className='mb-4 rounded-md bg-red-50 border border-red-200 text-red-700 px-4 py-2 text-sm'>
+            {error}
           </div>
-        )
-      }
+        )}
 
-      {isModalOpen && (
-        <CreateUserModal
-          onClose={() => setIsModalOpen(false)}
-          onCreated={(user) => {
-            setUsers((current) => [user, ...current])
-            setIsModalOpen(false)
-          }}
-        />
-      )}
+        {loading
+          ? <div className='py-10 text-center text-gray-500'>Loading....</div>
+          : (
+            <div className='overflow-x-auto rounded-lg border border-gray-200 shadow-sm'>
+              <div className='grid grid-cols-[1fr_120px_180px] bg-gray-50'>
+                <div className='px-4 py-3 text-sm font-semibold text-gray-700'>Email</div>
+                <div className='px-4 py-3 text-sm font-semibold text-gray-700'>Role</div>
+                <div className='px-4 py-3 text-sm font-semibold text-gray-700'>Created</div>
+              </div>
+              {users.length !== 0
+                ? users.map((user) => (
+                  <div key={user.id} className='grid grid-cols-[1fr_120px_180px] border-t border-gray-200'>
+                    <div className='px-4 py-3 text-sm text-gray-900'>{user.email}</div>
+                    <div className='px-4 py-3 text-sm text-gray-700'>{user.role}</div>
+                    <div className='px-4 py-3 text-sm text-gray-500'>
+                      {new Date(user.createdAt).toLocaleDateString()}
+                    </div>
+                  </div>
+                ))
+                : (
+                  <div className='px-4 py-10 text-center text-gray-500'>
+                    No users found
+                  </div>
+                )
+              }
+            </div>
+          )
+        }
+
+        {isModalOpen && (
+          <CreateUserModal
+            onClose={() => setIsModalOpen(false)}
+            onCreated={(user) => {
+              setUsers((current) => [user, ...current])
+              setIsModalOpen(false)
+            }}
+          />
+        )}
+      </div>
     </div>
   )
 }
