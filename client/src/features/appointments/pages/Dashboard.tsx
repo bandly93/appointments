@@ -2,7 +2,7 @@ import { Link } from "react-router-dom"
 import AppointmentsTable from "../components/Table"
 import ActivityFeed from "../components/ActivityFeed"
 import StatusToast from "../components/StatusToast"
-import { useAuth } from "../auth/AuthContext"
+import { useAuth } from "../../auth/AuthContext"
 
 export default function Dashboard() {
   const { user, logout } = useAuth()

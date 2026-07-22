@@ -1,6 +1,6 @@
-import { type Appointment, type GetAppointmentsParams } from './types/Appointments'
-import { type Note, type NoteAttachment } from './types/Notes'
-import { isWithinDateRange } from './utils'
+import { type Appointment, type GetAppointmentsParams } from '../types/Appointments'
+import { type Note, type NoteAttachment } from '../types/Notes'
+import { isWithinDateRange } from '../../../shared/utils'
 
 const numOfAppointments = 5000
 

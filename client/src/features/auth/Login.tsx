@@ -1,5 +1,5 @@
 import { useState, type SubmitEvent } from 'react'
-import { useAuth } from '../auth/AuthContext'
+import { useAuth } from './AuthContext'
 
 export default function Login() {
   const { login } = useAuth()

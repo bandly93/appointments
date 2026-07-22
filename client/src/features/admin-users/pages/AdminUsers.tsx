@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { useAuth } from '../auth/AuthContext'
+import { useAuth } from '../../auth/AuthContext'
 import { getUsers, createUser } from '../api/adminApi'
 import { type AdminUser, type Role } from '../types/User'
-import Modal from '../components/Modal'
+import Modal from '../../../shared/components/Modal'
 
 export default function AdminUsers() {
   const { authFetch } = useAuth()

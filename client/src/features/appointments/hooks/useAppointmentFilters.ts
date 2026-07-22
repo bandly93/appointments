@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useDebounce } from './useDebounce'
+import { useDebounce } from '../../../shared/hooks/useDebounce'
 
 export type StatusFilter = 'Scheduled' | 'Checked In' | 'Completed' | 'All'
 

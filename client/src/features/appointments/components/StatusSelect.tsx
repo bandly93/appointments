@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Appointment } from '../types/Appointments'
-import { updateAppointmentStatus } from '../fetchApi'
+import { updateAppointmentStatus } from '../api/fetchApi'
 import { appointmentEvents } from '../events/appointmentEvents.ts'
 
 type Props = {

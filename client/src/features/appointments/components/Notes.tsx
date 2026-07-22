@@ -1,6 +1,6 @@
 import { useRef, useState, type FormEvent } from 'react'
 import { Note, NoteAttachment } from '../types/Notes'
-import { addNote } from '../fetchApi'
+import { addNote } from '../api/fetchApi'
 
 type NoteProp = {
   appointmentId: number

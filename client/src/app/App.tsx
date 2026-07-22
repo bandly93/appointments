@@ -1,10 +1,10 @@
 import { Navigate, Route, Routes } from "react-router-dom"
-import Login from "./pages/Login"
-import Dashboard from "./pages/Dashboard"
-import AdminUsers from "./pages/AdminUsers"
-import ProtectedRoute from "./components/Router/ProtectedRoutes"
-import AdminRoute from "./components/Router/AdminRoute"
-import { useAuth } from "./auth/AuthContext"
+import Login from "../features/auth/Login"
+import Dashboard from "../features/appointments/pages/Dashboard"
+import AdminUsers from "../features/admin-users/pages/AdminUsers"
+import ProtectedRoute from "../features/auth/components/ProtectedRoute"
+import AdminRoute from "../features/auth/components/AdminRoute"
+import { useAuth } from "../features/auth/AuthContext"
 
 function App() {
   const { isAuthenticated, isLoading } = useAuth()
