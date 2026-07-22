@@ -2,12 +2,12 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../auth/AuthContext'
 import { getUsers, createUser } from '../api/adminApi'
-import { type AdminUser, type Role } from '../types/User'
+import { type User, type Role } from '../types/User'
 import Modal from '../../../shared/components/Modal'
 
-export default function AdminUsers() {
+export default function Users() {
   const { authFetch } = useAuth()
-  const [users, setUsers] = useState<AdminUser[]>([])
+  const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -99,7 +99,7 @@ function CreateUserModal({
   onCreated,
 }: {
   onClose: () => void
-  onCreated: (user: AdminUser) => void
+  onCreated: (user: User) => void
 }) {
   const { authFetch } = useAuth()
   const [email, setEmail] = useState('')

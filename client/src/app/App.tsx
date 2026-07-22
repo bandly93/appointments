@@ -1,7 +1,7 @@
 import { Navigate, Route, Routes } from "react-router-dom"
 import Login from "../features/auth/Login"
 import Dashboard from "../features/appointments/pages/Dashboard"
-import AdminUsers from "../features/users/pages/AdminUsers"
+import Users from "../features/users/pages/Users"
 import ProtectedRoute from "../features/auth/components/ProtectedRoute"
 import AdminRoute from "../features/auth/components/AdminRoute"
 import { useAuth } from "../features/auth/AuthContext"
@@ -18,7 +18,7 @@ function App() {
       <Route element={<ProtectedRoute />}>
         <Route path='/' element={<Dashboard />} />
         <Route element={<AdminRoute />}>
-          <Route path='/admin/users' element={<AdminUsers />} />
+          <Route path='/admin/users' element={<Users />} />
         </Route>
       </Route>
       <Route path='*' element={<Navigate to='/' replace />} />

@@ -1,6 +1,6 @@
 export type Role = 'STAFF' | 'PROVIDER' | 'ADMIN'
 
-export type AdminUser = {
+export type User = {
   id: string
   email: string
   role: Role
