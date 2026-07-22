@@ -6,6 +6,8 @@ import cookieParser from 'cookie-parser'
 import authRouter from './auth/auth.routes.js'
 import usersRouter from './users/users.routes.js'
 import availabilityRouter from './availability/availability.routes.js'
+import bookingRequestsRouter from './bookingRequests/bookingRequests.routes.js'
+import appointmentsRouter from './appointments/appointments.routes.js'
 import { errorHandler, notFoundHandler } from './lib/errorHandler.js'
 
 process.loadEnvFile()
@@ -24,6 +26,8 @@ app.use(cookieParser());
 app.use('/api/auth', authRouter);
 app.use('/api/admin/users', usersRouter);
 app.use('/api/availability', availabilityRouter);
+app.use('/api/booking-requests', bookingRequestsRouter);
+app.use('/api/appointments', appointmentsRouter);
 
 app.use(notFoundHandler);
 app.use(errorHandler);
