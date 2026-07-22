@@ -25,6 +25,11 @@ const Navbar = () => {
               Users
             </Link>
           )}
+          {user?.role === 'PROVIDER' && (
+            <Link to='/my-availability' className={navLinkClasses(pathname.startsWith('/my-availability'))}>
+              My Availability
+            </Link>
+          )}
         </nav>
       </div>
       <div className='flex items-center gap-3'>
