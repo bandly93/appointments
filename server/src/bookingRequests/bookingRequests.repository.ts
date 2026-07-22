@@ -21,7 +21,7 @@ const bookingRequestSelect = {
 
 export function findActiveBookingForSlot(providerId: string, startsAt: Date, client: PrismaOrTx = prisma) {
   return client.bookingRequest.findFirst({
-    where: { providerId, startsAt, status: { in: ["PENDING", "APPROVED"] } },
+    where: { providerId, startsAt, status: { in: ["UNVERIFIED", "PENDING", "APPROVED"] } },
   });
 }
 
@@ -32,16 +32,24 @@ type InsertData = {
   endsAt: Date;
   notes?: string;
   accessTokenHash: string;
+  verificationCodeHash: string;
+  verificationExpiresAt: Date;
 };
 
 export function insertBookingRequest(data: InsertData, client: PrismaOrTx = prisma) {
   return client.bookingRequest.create({ data, select: bookingRequestSelect });
 }
 
-export function findBookingRequestByIdWithToken(id: string, client: PrismaOrTx = prisma) {
+export function findBookingRequestByIdWithSecrets(id: string, client: PrismaOrTx = prisma) {
   return client.bookingRequest.findUnique({
     where: { id },
-    select: { ...bookingRequestSelect, accessTokenHash: true },
+    select: {
+      ...bookingRequestSelect,
+      accessTokenHash: true,
+      verificationCodeHash: true,
+      verificationExpiresAt: true,
+      verificationAttempts: true,
+    },
   });
 }
 
@@ -59,7 +67,13 @@ export function findBookingRequests(status?: BookingStatus) {
 
 export function updateBookingRequest(
   id: string,
-  data: Partial<{ notes: string; status: BookingStatus }>,
+  data: Partial<{
+    notes: string;
+    status: BookingStatus;
+    verificationCodeHash: string | null;
+    verificationExpiresAt: Date | null;
+    verificationAttempts: number;
+  }>,
   client: PrismaOrTx = prisma
 ) {
   return client.bookingRequest.update({ where: { id }, data, select: bookingRequestSelect });

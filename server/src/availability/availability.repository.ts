@@ -44,8 +44,13 @@ export function findActiveBookedInstants(providerId: string, from: Date, to: Dat
   return prisma.bookingRequest.findMany({
     where: {
       providerId,
-      status: { in: ["PENDING", "APPROVED"] },
       startsAt: { gte: from, lte: to },
+      OR: [
+        { status: { in: ["PENDING", "APPROVED"] } },
+        // Unverified requests are a soft-hold: only block the slot until
+        // their verification window expires.
+        { status: "UNVERIFIED", verificationExpiresAt: { gt: new Date() } },
+      ],
     },
     select: { startsAt: true },
   });

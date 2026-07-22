@@ -6,7 +6,7 @@ import type { BookingStatus } from "../generated/prisma/enums.js";
 import {
   findActiveBookingForSlot,
   insertBookingRequest,
-  findBookingRequestByIdWithToken,
+  findBookingRequestByIdWithSecrets,
   findBookingRequestById,
   findBookingRequests,
   updateBookingRequest,
@@ -16,7 +16,16 @@ import { findPatientByEmail, insertPatient, updatePatientContact } from "../pati
 import { findActiveProviderById } from "../availability/availability.repository.js";
 import { findMatchingBookableSlot } from "../availability/availability.service.js";
 import { insertAppointment } from "../appointments/appointments.repository.js";
-import { generateAccessToken, verifyToken } from "./token.js";
+import { generateAccessToken, generateVerificationCode, verifyToken } from "./token.js";
+import { sendVerificationEmail } from "../lib/mailer.js";
+
+const VERIFICATION_TTL_MS = 10 * 60 * 1000;
+const MAX_VERIFICATION_ATTEMPTS = 5;
+
+// A request is only a confirmed hold once the patient's email is verified;
+// UNVERIFIED is a time-boxed soft-hold so casual/bad-faith submissions don't
+// permanently block a slot.
+const PATIENT_EDITABLE_STATUSES: BookingStatus[] = ["UNVERIFIED", "PENDING"];
 
 const patientSchema = z.object({
   name: z.string().trim().min(1),
@@ -46,12 +55,22 @@ export async function createBookingRequest(rawInput: unknown) {
 
   const email = patientInput.email.toLowerCase();
   const { rawToken, tokenHash } = generateAccessToken();
+  const { rawCode, codeHash } = generateVerificationCode();
+  const verificationExpiresAt = new Date(Date.now() + VERIFICATION_TTL_MS);
 
   try {
     const bookingRequest = await prisma.$transaction(
       async (tx) => {
         const existingBooking = await findActiveBookingForSlot(providerId, startsAt, tx);
-        if (existingBooking) throw new Error("SLOT_UNAVAILABLE");
+        if (existingBooking) {
+          const isExpiredHold =
+            existingBooking.status === "UNVERIFIED" &&
+            existingBooking.verificationExpiresAt !== null &&
+            existingBooking.verificationExpiresAt.getTime() < Date.now();
+
+          if (!isExpiredHold) throw new Error("SLOT_UNAVAILABLE");
+          await updateBookingRequest(existingBooking.id, { status: "EXPIRED" }, tx);
+        }
 
         const existingPatient = await findPatientByEmail(email, tx);
         const patient = existingPatient
@@ -66,12 +85,20 @@ export async function createBookingRequest(rawInput: unknown) {
             endsAt: slot.endsAt,
             notes,
             accessTokenHash: tokenHash,
+            verificationCodeHash: codeHash,
+            verificationExpiresAt,
           },
           tx
         );
       },
       { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }
     );
+
+    // Don't let a mail-provider hiccup fail an already-committed booking —
+    // the patient can request a new code via resendVerificationCode.
+    sendVerificationEmail(email, rawCode).catch((err) => {
+      console.error("Failed to send verification email", err);
+    });
 
     return { bookingRequest, accessToken: rawToken };
   } catch (err) {
@@ -83,17 +110,28 @@ export async function createBookingRequest(rawInput: unknown) {
   }
 }
 
-async function loadAndVerifyAccess(id: string, rawToken: string) {
-  const bookingRequest = await findBookingRequestByIdWithToken(id);
+async function loadWithSecrets(id: string, rawToken: string) {
+  const bookingRequest = await findBookingRequestByIdWithSecrets(id);
   if (!bookingRequest || !verifyToken(rawToken, bookingRequest.accessTokenHash)) {
     throw new Error("NOT_FOUND");
   }
-  const { accessTokenHash, ...safeBookingRequest } = bookingRequest;
-  return safeBookingRequest;
+  return bookingRequest;
+}
+
+function toSafeBookingRequest<
+  T extends {
+    accessTokenHash: string;
+    verificationCodeHash: string | null;
+    verificationExpiresAt: Date | null;
+    verificationAttempts: number;
+  }
+>(bookingRequest: T) {
+  const { accessTokenHash, verificationCodeHash, verificationExpiresAt, verificationAttempts, ...safe } = bookingRequest;
+  return safe;
 }
 
 export async function getBookingRequestForPatient(id: string, rawToken: string) {
-  return loadAndVerifyAccess(id, rawToken);
+  return toSafeBookingRequest(await loadWithSecrets(id, rawToken));
 }
 
 const patientUpdateSchema = z.object({
@@ -101,8 +139,8 @@ const patientUpdateSchema = z.object({
 });
 
 export async function updateBookingRequestAsPatient(id: string, rawToken: string, rawInput: unknown) {
-  const existing = await loadAndVerifyAccess(id, rawToken);
-  if (existing.status !== "PENDING") throw new Error("INVALID_STATUS");
+  const existing = await loadWithSecrets(id, rawToken);
+  if (!PATIENT_EDITABLE_STATUSES.includes(existing.status)) throw new Error("INVALID_STATUS");
 
   const parsed = patientUpdateSchema.safeParse(rawInput);
   if (!parsed.success) throw new Error("INVALID_INPUT");
@@ -111,10 +149,59 @@ export async function updateBookingRequestAsPatient(id: string, rawToken: string
 }
 
 export async function cancelBookingRequestAsPatient(id: string, rawToken: string) {
-  const existing = await loadAndVerifyAccess(id, rawToken);
-  if (existing.status !== "PENDING") throw new Error("INVALID_STATUS");
+  const existing = await loadWithSecrets(id, rawToken);
+  if (!PATIENT_EDITABLE_STATUSES.includes(existing.status)) throw new Error("INVALID_STATUS");
 
   return updateBookingRequest(id, { status: "CANCELLED" });
+}
+
+const verifyCodeSchema = z.object({
+  code: z.string().trim().length(6),
+});
+
+export async function verifyBookingRequestEmail(id: string, rawToken: string, rawInput: unknown) {
+  const existing = await loadWithSecrets(id, rawToken);
+  if (existing.status !== "UNVERIFIED") throw new Error("INVALID_STATUS");
+
+  const parsed = verifyCodeSchema.safeParse(rawInput);
+  if (!parsed.success) throw new Error("INVALID_INPUT");
+
+  if (!existing.verificationExpiresAt || existing.verificationExpiresAt.getTime() < Date.now()) {
+    throw new Error("CODE_EXPIRED");
+  }
+
+  if (existing.verificationAttempts >= MAX_VERIFICATION_ATTEMPTS) {
+    throw new Error("TOO_MANY_ATTEMPTS");
+  }
+
+  const isMatch = existing.verificationCodeHash !== null && verifyToken(parsed.data.code, existing.verificationCodeHash);
+  if (!isMatch) {
+    await updateBookingRequest(id, { verificationAttempts: existing.verificationAttempts + 1 });
+    throw new Error("INVALID_CODE");
+  }
+
+  return updateBookingRequest(id, {
+    status: "PENDING",
+    verificationCodeHash: null,
+    verificationExpiresAt: null,
+    verificationAttempts: 0,
+  });
+}
+
+export async function resendVerificationCode(id: string, rawToken: string) {
+  const existing = await loadWithSecrets(id, rawToken);
+  if (existing.status !== "UNVERIFIED") throw new Error("INVALID_STATUS");
+
+  const { rawCode, codeHash } = generateVerificationCode();
+  const verificationExpiresAt = new Date(Date.now() + VERIFICATION_TTL_MS);
+
+  await updateBookingRequest(id, {
+    verificationCodeHash: codeHash,
+    verificationExpiresAt,
+    verificationAttempts: 0,
+  });
+
+  await sendVerificationEmail(existing.patient.email, rawCode);
 }
 
 export function listBookingRequests(status?: string) {

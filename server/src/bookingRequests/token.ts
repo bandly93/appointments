@@ -16,3 +16,8 @@ export function verifyToken(rawToken: string, tokenHash: string): boolean {
   if (candidate.length !== stored.length) return false;
   return crypto.timingSafeEqual(candidate, stored);
 }
+
+export function generateVerificationCode(): { rawCode: string; codeHash: string } {
+  const rawCode = crypto.randomInt(0, 1_000_000).toString().padStart(6, "0");
+  return { rawCode, codeHash: hashToken(rawCode) };
+}

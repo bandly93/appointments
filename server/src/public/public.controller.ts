@@ -7,6 +7,8 @@ import {
   getBookingRequestForPatient,
   updateBookingRequestAsPatient,
   cancelBookingRequestAsPatient,
+  verifyBookingRequestEmail,
+  resendVerificationCode,
 } from "../bookingRequests/bookingRequests.service.js";
 
 export const getPublicSlots = getSlotsHandler;
@@ -82,6 +84,48 @@ export async function deleteMyBookingRequest(req: Request, res: Response) {
     }
     if (err instanceof Error && err.message === "INVALID_STATUS") {
       return res.status(409).json({ error: "This request can no longer be cancelled" });
+    }
+    throw err;
+  }
+}
+
+export async function postVerifyBookingRequest(req: Request, res: Response) {
+  try {
+    const bookingRequest = await verifyBookingRequestEmail(String(req.params.id), getTokenFromQuery(req), req.body);
+    res.json({ success: true, bookingRequest });
+  } catch (err) {
+    if (err instanceof Error && err.message === "NOT_FOUND") {
+      return res.status(404).json({ error: "Booking request not found" });
+    }
+    if (err instanceof Error && err.message === "INVALID_STATUS") {
+      return res.status(409).json({ error: "This request has already been verified" });
+    }
+    if (err instanceof Error && err.message === "INVALID_INPUT") {
+      return res.status(400).json({ error: "Enter the 6-digit code" });
+    }
+    if (err instanceof Error && err.message === "CODE_EXPIRED") {
+      return res.status(410).json({ error: "This code has expired. Request a new one." });
+    }
+    if (err instanceof Error && err.message === "TOO_MANY_ATTEMPTS") {
+      return res.status(429).json({ error: "Too many incorrect attempts. Request a new code." });
+    }
+    if (err instanceof Error && err.message === "INVALID_CODE") {
+      return res.status(400).json({ error: "That code is incorrect" });
+    }
+    throw err;
+  }
+}
+
+export async function postResendVerificationCode(req: Request, res: Response) {
+  try {
+    await resendVerificationCode(String(req.params.id), getTokenFromQuery(req));
+    res.json({ success: true });
+  } catch (err) {
+    if (err instanceof Error && err.message === "NOT_FOUND") {
+      return res.status(404).json({ error: "Booking request not found" });
+    }
+    if (err instanceof Error && err.message === "INVALID_STATUS") {
+      return res.status(409).json({ error: "This request has already been verified" });
     }
     throw err;
   }

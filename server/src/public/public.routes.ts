@@ -6,6 +6,8 @@ import {
   getMyBookingRequest,
   patchMyBookingRequest,
   deleteMyBookingRequest,
+  postVerifyBookingRequest,
+  postResendVerificationCode,
 } from "./public.controller.js";
 
 const router = Router();
@@ -16,5 +18,7 @@ router.post("/booking-requests", postBookingRequest);
 router.get("/booking-requests/:id", getMyBookingRequest);
 router.patch("/booking-requests/:id", patchMyBookingRequest);
 router.delete("/booking-requests/:id", deleteMyBookingRequest);
+router.post("/booking-requests/:id/verify", postVerifyBookingRequest);
+router.post("/booking-requests/:id/resend-code", postResendVerificationCode);
 
 export default router;

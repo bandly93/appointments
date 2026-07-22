@@ -24,10 +24,12 @@ enum DayOfWeek {
 }
 
 enum BookingStatus {
+  UNVERIFIED
   PENDING
   APPROVED
   REJECTED
   CANCELLED
+  EXPIRED
 }
 
 enum AppointmentStatus {
@@ -107,10 +109,17 @@ model BookingRequest {
 
   startsAt DateTime
   endsAt   DateTime
-  status   BookingStatus @default(PENDING)
+  status   BookingStatus @default(UNVERIFIED)
   notes    String?
 
   accessTokenHash String @unique
+
+  // Email confirmation: the slot is a soft-hold while UNVERIFIED and expires
+  // if the patient doesn't confirm in time (see the partial unique index in
+  // the migration, which also treats UNVERIFIED as slot-blocking).
+  verificationCodeHash  String?
+  verificationExpiresAt DateTime?
+  verificationAttempts  Int       @default(0)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
