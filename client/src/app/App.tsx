@@ -1,7 +1,7 @@
 import { Navigate, Route, Routes } from "react-router-dom"
 import Login from "../features/auth/Login"
 import Dashboard from "../features/appointments/pages/Dashboard"
-import AdminUsers from "../features/admin-users/pages/AdminUsers"
+import AdminUsers from "../features/users/pages/AdminUsers"
 import ProtectedRoute from "../features/auth/components/ProtectedRoute"
 import AdminRoute from "../features/auth/components/AdminRoute"
 import { useAuth } from "../features/auth/AuthContext"
