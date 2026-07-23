@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
-import { getMyBooking, updateMyBooking, cancelMyBooking } from '../api/publicBookingApi'
+import { getMyBooking, updateMyBooking, cancelMyBooking, verifyBookingRequest } from '../api/publicBookingApi'
 import { type MyBookingRequest } from '../types/Booking'
 import VerifyCodeForm from '../components/VerifyCodeForm'
 
@@ -8,12 +8,15 @@ export default function MyBookingPage() {
   const { requestId } = useParams<{ requestId: string }>()
   const [searchParams] = useSearchParams()
   const token = searchParams.get('token') ?? ''
+  const autoVerifyCode = searchParams.get('code') ?? ''
 
   const [booking, setBooking] = useState<MyBookingRequest | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [notes, setNotes] = useState('')
   const [isSaving, setIsSaving] = useState(false)
+  const [isAutoVerifying, setIsAutoVerifying] = useState(false)
+  const autoVerifyAttempted = useRef(false)
 
   useEffect(() => {
     if (!requestId || !token) {
@@ -23,13 +26,24 @@ export default function MyBookingPage() {
     }
 
     getMyBooking(requestId, token)
-      .then((b) => {
+      .then(async (b) => {
+        if (b.status === 'UNVERIFIED' && autoVerifyCode.length === 6 && !autoVerifyAttempted.current) {
+          autoVerifyAttempted.current = true
+          setIsAutoVerifying(true)
+          try {
+            b = await verifyBookingRequest(requestId, token, autoVerifyCode)
+          } catch (err) {
+            setError(err instanceof Error ? err.message : 'Failed to verify code')
+          } finally {
+            setIsAutoVerifying(false)
+          }
+        }
         setBooking(b)
         setNotes(b.notes ?? '')
       })
       .catch((err) => setError(err instanceof Error ? err.message : 'Booking request not found'))
       .finally(() => setLoading(false))
-  }, [requestId, token])
+  }, [requestId, token, autoVerifyCode])
 
   async function handleSave() {
     if (!requestId) return
@@ -60,7 +74,11 @@ export default function MyBookingPage() {
   }
 
   if (loading) {
-    return <div className='p-10 text-center text-gray-500'>Loading....</div>
+    return (
+      <div className='p-10 text-center text-gray-500'>
+        {isAutoVerifying ? 'Confirming your booking…' : 'Loading....'}
+      </div>
+    )
   }
 
   if (error && !booking) {

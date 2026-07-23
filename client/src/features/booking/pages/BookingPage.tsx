@@ -41,8 +41,13 @@ export default function BookingPage() {
   }
 
   if (booking && !verified) {
+    const link = `${window.location.origin}/my-booking/${booking.id}?token=${booking.accessToken}`
     return (
-      <div className='w-full max-w-xl mx-auto p-6'>
+      <div className='w-full max-w-xl mx-auto p-6 flex flex-col gap-4'>
+        <SaveLinkBox
+          link={link}
+          message="Save this link now — if you leave this page before confirming, it's the only way back in to enter your code or request a new one."
+        />
         <VerifyCodeForm
           bookingId={booking.id}
           token={booking.accessToken}
@@ -58,24 +63,11 @@ export default function BookingPage() {
       <div className='w-full max-w-xl mx-auto p-6'>
         <div className='rounded-lg border border-green-200 bg-green-50 p-6'>
           <h1 className='text-xl font-semibold text-green-900 mb-2'>Request submitted</h1>
-          <p className='text-sm text-green-800 mb-4'>
-            Your appointment request has been sent for approval. Save this link to view, edit, or cancel your request:
-          </p>
-          <div className='flex items-center gap-2'>
-            <input
-              readOnly
-              value={link}
-              className='w-full rounded-md border border-gray-300 px-3 py-2 text-sm bg-white'
-              onFocus={(e) => e.target.select()}
-            />
-            <button
-              type='button'
-              onClick={() => navigator.clipboard.writeText(link)}
-              className='rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-500 whitespace-nowrap'
-            >
-              Copy link
-            </button>
-          </div>
+          <SaveLinkBox
+            link={link}
+            message='Your appointment request has been sent for approval. Save this link to view, edit, or cancel your request:'
+            bare
+          />
         </div>
       </div>
     )
@@ -139,6 +131,37 @@ export default function BookingPage() {
           }}
         />
       )}
+    </div>
+  )
+}
+
+function SaveLinkBox({ link, message, bare = false }: { link: string; message: string; bare?: boolean }) {
+  const content = (
+    <>
+      <p className={`text-sm mb-4 ${bare ? 'text-green-800' : 'text-amber-800'}`}>{message}</p>
+      <div className='flex items-center gap-2'>
+        <input
+          readOnly
+          value={link}
+          className='w-full rounded-md border border-gray-300 px-3 py-2 text-sm bg-white'
+          onFocus={(e) => e.target.select()}
+        />
+        <button
+          type='button'
+          onClick={() => navigator.clipboard.writeText(link)}
+          className='rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-500 whitespace-nowrap'
+        >
+          Copy link
+        </button>
+      </div>
+    </>
+  )
+
+  if (bare) return content
+
+  return (
+    <div className='rounded-lg border border-amber-200 bg-amber-50 p-6'>
+      {content}
     </div>
   )
 }
