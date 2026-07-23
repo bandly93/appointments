@@ -33,9 +33,12 @@ export function insertAppointment(data: InsertData, client: PrismaOrTx = prisma)
   return client.appointment.create({ data, select: appointmentSelect });
 }
 
-export function findAppointments(status?: AppointmentStatus) {
+export function findAppointments(status?: AppointmentStatus, dateRange?: { from: Date; to: Date }) {
   return prisma.appointment.findMany({
-    where: status ? { status } : undefined,
+    where: {
+      status,
+      startsAt: dateRange ? { gte: dateRange.from, lte: dateRange.to } : undefined,
+    },
     select: appointmentSelect,
     orderBy: { startsAt: "asc" },
   });

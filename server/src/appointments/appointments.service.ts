@@ -10,8 +10,14 @@ import {
 } from "./appointments.repository.js";
 import { updateBookingRequest } from "../bookingRequests/bookingRequests.repository.js";
 
-export function listAppointments(status?: string) {
-  return findAppointments(status as AppointmentStatus | undefined);
+const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+
+export function listAppointments(status?: string, date?: string) {
+  const dateRange = date && dateSchema.safeParse(date).success
+    ? { from: new Date(`${date}T00:00:00.000Z`), to: new Date(`${date}T23:59:59.999Z`) }
+    : undefined;
+
+  return findAppointments(status as AppointmentStatus | undefined, dateRange);
 }
 
 const updateAppointmentSchema = z.object({

@@ -4,9 +4,9 @@ import { requireAuth, requireRole } from "../auth/auth.middleware.js";
 
 const router = Router();
 
-router.use(requireAuth, requireRole("STAFF", "ADMIN"));
-router.get("/", getAppointments);
-router.patch("/:id", patchAppointment);
-router.delete("/:id", deleteAppointmentHandler);
+router.use(requireAuth);
+router.get("/", requireRole("STAFF", "ADMIN", "PROVIDER"), getAppointments);
+router.patch("/:id", requireRole("STAFF", "ADMIN"), patchAppointment);
+router.delete("/:id", requireRole("STAFF", "ADMIN"), deleteAppointmentHandler);
 
 export default router;
