@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from "react-router-dom"
 import Login from "../features/auth/Login"
 import Dashboard from "../features/appointments/pages/Dashboard"
+import AllAppointments from "../features/appointments/pages/AllAppointments"
 import Users from "../features/users/pages/Users"
 import ProtectedRoute from "../features/auth/components/ProtectedRoute"
 import AdminRoute from "../features/auth/components/AdminRoute"
@@ -34,6 +35,7 @@ function App() {
       {/* non-public routes */}
       <Route element={<ProtectedRoute />}>
         <Route path='/dashboard' element={<Dashboard />} />
+        <Route path='/appointments' element={<AllAppointments />} />
         <Route element={<AdminRoute />}>
           <Route path='/admin/users' element={<Users />} />
         </Route>

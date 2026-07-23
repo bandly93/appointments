@@ -20,6 +20,9 @@ const Navbar = () => {
           <Link to='/dashboard' className={navLinkClasses(pathname === '/dashboard')}>
             Dashboard
           </Link>
+          <Link to='/appointments' className={navLinkClasses(pathname === '/appointments')}>
+            All Appointments
+          </Link>
           {user?.role === 'ADMIN' && (
             <Link to='/admin/users' className={navLinkClasses(pathname.startsWith('/admin/users'))}>
               Users
