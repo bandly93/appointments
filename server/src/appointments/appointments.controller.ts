@@ -5,7 +5,8 @@ import { listAppointments, editAppointment, removeAppointment } from "./appointm
 export async function getAppointments(req: Request, res: Response) {
   const status = typeof req.query.status === "string" ? req.query.status : undefined;
   const date = typeof req.query.date === "string" ? req.query.date : undefined;
-  const appointments = await listAppointments(status, date);
+  const providerId = typeof req.query.providerId === "string" ? req.query.providerId : undefined;
+  const appointments = await listAppointments(status, date, providerId);
   res.json({ success: true, appointments });
 }
 
