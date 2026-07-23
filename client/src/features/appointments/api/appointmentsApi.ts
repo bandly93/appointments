@@ -6,11 +6,12 @@ type AuthFetch = (input: RequestInfo, init?: RequestInit) => Promise<Response>
 
 export async function getAppointments(
   authFetch: AuthFetch,
-  filters: { date?: string; status?: Appointment['status'] } = {}
+  filters: { date?: string; status?: Appointment['status']; providerId?: string } = {}
 ): Promise<Appointment[]> {
   const params = new URLSearchParams()
   if (filters.date) params.set('date', filters.date)
   if (filters.status) params.set('status', filters.status)
+  if (filters.providerId) params.set('providerId', filters.providerId)
   const query = params.toString()
 
   const res = await authFetch(`${API_URL}/api/appointments${query ? `?${query}` : ''}`)

@@ -3,6 +3,7 @@ import { useAuth } from '../../auth/AuthContext'
 import { getAppointments } from '../api/appointmentsApi'
 import { type Appointment, type AppointmentStatus } from '../types/Appointment'
 import Navbar from '../../layout/Navbar'
+import ProviderSelect from '../components/ProviderSelect'
 
 const STATUSES: (AppointmentStatus | 'All')[] = ['SCHEDULED', 'COMPLETED', 'CANCELLED', 'All']
 
@@ -12,6 +13,7 @@ type SortDirection = 'asc' | 'desc'
 export default function AllAppointments() {
   const { authFetch } = useAuth()
   const [statusFilter, setStatusFilter] = useState<AppointmentStatus | 'All'>('All')
+  const [providerId, setProviderId] = useState<string | 'All'>('All')
   const [search, setSearch] = useState('')
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [loading, setLoading] = useState(false)
@@ -21,12 +23,15 @@ export default function AllAppointments() {
   useEffect(() => {
     setLoading(true)
     setError(null)
-    getAppointments(authFetch, { status: statusFilter === 'All' ? undefined : statusFilter })
+    getAppointments(authFetch, {
+      status: statusFilter === 'All' ? undefined : statusFilter,
+      providerId: providerId === 'All' ? undefined : providerId,
+    })
       .then(setAppointments)
       .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load appointments'))
       .finally(() => setLoading(false))
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusFilter])
+  }, [statusFilter, providerId])
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase()
@@ -92,6 +97,7 @@ export default function AllAppointments() {
               <option key={status} value={status}>{status}</option>
             ))}
           </select>
+          <ProviderSelect value={providerId} onChange={setProviderId} />
         </div>
 
         {error && (

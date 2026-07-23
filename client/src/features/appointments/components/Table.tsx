@@ -3,6 +3,7 @@ import { useAuth } from '../../auth/AuthContext'
 import { getAppointments, updateAppointmentStatus } from '../api/appointmentsApi'
 import { type Appointment, type AppointmentStatus } from '../types/Appointment'
 import { todayDateString } from './DateNav'
+import ProviderSelect from './ProviderSelect'
 
 const STATUSES: AppointmentStatus[] = ['SCHEDULED', 'COMPLETED', 'CANCELLED']
 
@@ -10,6 +11,9 @@ export default function AppointmentsTable({ date }: { date: string }) {
   const { authFetch, user } = useAuth()
   const canEditStatus = user?.role === 'STAFF' || user?.role === 'ADMIN'
 
+  const [providerId, setProviderId] = useState<string | 'All'>(
+    user?.role === 'PROVIDER' ? user.id : 'All'
+  )
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -18,12 +22,12 @@ export default function AppointmentsTable({ date }: { date: string }) {
   useEffect(() => {
     setLoading(true)
     setError(null)
-    getAppointments(authFetch, { date })
+    getAppointments(authFetch, { date, providerId: providerId === 'All' ? undefined : providerId })
       .then(setAppointments)
       .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load appointments'))
       .finally(() => setLoading(false))
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [date])
+  }, [date, providerId])
 
   async function handleStatusChange(id: string, status: AppointmentStatus) {
     setSavingId(id)
@@ -42,9 +46,12 @@ export default function AppointmentsTable({ date }: { date: string }) {
 
   return (
     <div>
-      <h1 className='text-2xl font-semibold text-gray-900 mb-1'>
-        {isToday ? "Today's appointments" : 'Appointments'}
-      </h1>
+      <div className='flex items-start justify-between gap-4 mb-1'>
+        <h1 className='text-2xl font-semibold text-gray-900'>
+          {isToday ? "Today's appointments" : 'Appointments'}
+        </h1>
+        <ProviderSelect value={providerId} onChange={setProviderId} />
+      </div>
       <p className='text-sm text-gray-500 mb-4'>
         {new Date(`${date}T00:00:00`).toLocaleDateString(undefined, {
           weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
