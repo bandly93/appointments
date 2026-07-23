@@ -21,6 +21,11 @@ import { sendVerificationEmail } from "../lib/mailer.js";
 
 const VERIFICATION_TTL_MS = 10 * 60 * 1000;
 const MAX_VERIFICATION_ATTEMPTS = 5;
+const CLIENT_URL = process.env.CLIENT_URL ?? "http://localhost:5173";
+
+function buildMyBookingLink(id: string, rawToken: string, code: string): string {
+  return `${CLIENT_URL}/my-booking/${id}?token=${rawToken}&code=${code}`;
+}
 
 // A request is only a confirmed hold once the patient's email is verified;
 // UNVERIFIED is a time-boxed soft-hold so casual/bad-faith submissions don't
@@ -96,7 +101,8 @@ export async function createBookingRequest(rawInput: unknown) {
 
     // Don't let a mail-provider hiccup fail an already-committed booking —
     // the patient can request a new code via resendVerificationCode.
-    sendVerificationEmail(email, rawCode).catch((err) => {
+    const link = buildMyBookingLink(bookingRequest.id, rawToken, rawCode);
+    sendVerificationEmail(email, rawCode, link).catch((err) => {
       console.error("Failed to send verification email", err);
     });
 
@@ -201,7 +207,7 @@ export async function resendVerificationCode(id: string, rawToken: string) {
     verificationAttempts: 0,
   });
 
-  await sendVerificationEmail(existing.patient.email, rawCode);
+  await sendVerificationEmail(existing.patient.email, rawCode, buildMyBookingLink(id, rawToken, rawCode));
 }
 
 export function listBookingRequests(status?: string) {
