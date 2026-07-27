@@ -17,7 +17,7 @@ import { findPatientByEmail, insertPatient, updatePatientContact } from "../pati
 import { findActiveProviderById } from "../availability/availability.repository.js";
 import { findMatchingBookableSlot } from "../availability/availability.service.js";
 import { insertAppointment } from "../appointments/appointments.repository.js";
-import { generateAccessToken, generateVerificationCode, verifyToken } from "./token.js";
+import { generateAccessToken, generateVerificationCode, verifyToken } from "../lib/token.js";
 import { sendVerificationEmail } from "../lib/mailer.js";
 
 const VERIFICATION_TTL_MS = 10 * 60 * 1000;
