@@ -51,7 +51,8 @@ export default function VerifyCodeForm({
     <div className='rounded-lg border border-blue-200 bg-blue-50 p-6'>
       <h2 className='text-lg font-semibold text-blue-900 mb-1'>Confirm your email</h2>
       <p className='text-sm text-blue-800 mb-4'>
-        We sent a 6-digit code to your email. Enter it below to hold your appointment request — the code expires in 10 minutes.
+        Check your email — tapping "Confirm booking" there is the fastest way to finish. No luck with the link?
+        Enter the 6-digit code from that email below instead — it expires in 10 minutes.
       </p>
 
       <form onSubmit={handleSubmit} className='flex flex-col gap-3'>

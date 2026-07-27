@@ -5,6 +5,15 @@ import { type MyBookingRequest } from '../types/Booking'
 import VerifyCodeForm from '../components/VerifyCodeForm'
 import PublicHeader from '../../../shared/components/PublicHeader'
 
+const STATUS_LABELS: Record<MyBookingRequest['status'], string> = {
+  UNVERIFIED: 'Awaiting email confirmation',
+  PENDING: 'Pending approval',
+  APPROVED: 'Confirmed',
+  REJECTED: 'Declined',
+  CANCELLED: 'Cancelled',
+  EXPIRED: 'Expired',
+}
+
 export default function MyBookingPage() {
   const { requestId } = useParams<{ requestId: string }>()
   const [searchParams] = useSearchParams()
@@ -17,6 +26,7 @@ export default function MyBookingPage() {
   const [notes, setNotes] = useState('')
   const [isSaving, setIsSaving] = useState(false)
   const [isAutoVerifying, setIsAutoVerifying] = useState(false)
+  const [justConfirmed, setJustConfirmed] = useState(false)
   const autoVerifyAttempted = useRef(false)
 
   useEffect(() => {
@@ -33,6 +43,7 @@ export default function MyBookingPage() {
           setIsAutoVerifying(true)
           try {
             b = await verifyBookingRequest(requestId, token, autoVerifyCode)
+            setJustConfirmed(true)
           } catch (err) {
             setError(err instanceof Error ? err.message : 'Failed to verify code')
           } finally {
@@ -107,13 +118,20 @@ export default function MyBookingPage() {
           with {booking.provider.displayName ?? 'the provider'}
         </p>
 
+        {justConfirmed && booking.status === 'PENDING' && (
+          <div className='mb-4 rounded-lg border border-green-200 bg-green-50 p-4 text-sm text-green-800'>
+            ✓ Email confirmed. Your appointment request has been sent to the provider for approval — we'll let you
+            know once it's reviewed.
+          </div>
+        )}
+
         <div className='rounded-lg border border-gray-200 bg-white shadow-sm p-4 mb-4'>
           <div className='text-sm text-gray-700 mb-1'>
             {new Date(booking.startsAt).toLocaleString(undefined, {
               weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit',
             })}
           </div>
-          <div className='text-sm font-medium text-gray-900'>Status: {booking.status}</div>
+          <div className='text-sm font-medium text-gray-900'>Status: {STATUS_LABELS[booking.status]}</div>
         </div>
 
         {error && (
