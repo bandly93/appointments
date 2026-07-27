@@ -34,7 +34,7 @@ export async function createBookingRequest(input: {
   startsAt: string
   notes?: string
   patient: PatientInput
-}): Promise<{ id: string; accessToken: string }> {
+}): Promise<{ id: string; accessToken: string; emailSent: boolean }> {
   const res = await fetch(`${API_URL}/api/public/booking-requests`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -46,7 +46,7 @@ export async function createBookingRequest(input: {
     throw new Error(data.error || 'Failed to submit booking request')
   }
 
-  return { id: data.bookingRequest.id, accessToken: data.accessToken }
+  return { id: data.bookingRequest.id, accessToken: data.accessToken, emailSent: data.emailSent }
 }
 
 export async function verifyBookingRequest(id: string, token: string, code: string): Promise<MyBookingRequest> {

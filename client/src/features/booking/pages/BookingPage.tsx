@@ -17,7 +17,7 @@ export default function BookingPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null)
-  const [booking, setBooking] = useState<{ id: string; accessToken: string } | null>(null)
+  const [booking, setBooking] = useState<{ id: string; accessToken: string; emailSent: boolean } | null>(null)
   const [verified, setVerified] = useState(false)
 
   useEffect(() => {
@@ -44,6 +44,12 @@ export default function BookingPage() {
     const link = `${window.location.origin}/my-booking/${booking.id}?token=${booking.accessToken}`
     return (
       <div className='w-full max-w-xl mx-auto p-6 flex flex-col gap-4'>
+        {!booking.emailSent && (
+          <div className='rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800'>
+            We couldn't send the verification email to that address. Try "Resend code" below, or double-check the
+            address you entered — if it keeps failing, contact us for help confirming your booking.
+          </div>
+        )}
         <SaveLinkBox
           link={link}
           message="Save this link now — if you leave this page before confirming, it's the only way back in to enter your code or request a new one."
@@ -175,7 +181,7 @@ function BookingFormModal({
   providerId: string
   slot: Slot
   onClose: () => void
-  onBooked: (result: { id: string; accessToken: string }) => void
+  onBooked: (result: { id: string; accessToken: string; emailSent: boolean }) => void
 }) {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
