@@ -201,6 +201,8 @@ function BookingFormModal({
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
+  const [dateOfBirth, setDateOfBirth] = useState('')
+  const [address, setAddress] = useState('')
   const [notes, setNotes] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -215,7 +217,13 @@ function BookingFormModal({
         providerId,
         startsAt: slot.startsAt,
         notes: notes.trim() || undefined,
-        patient: { name, email, phone: phone.trim() || undefined },
+        patient: {
+          name,
+          email,
+          phone: phone.trim() || undefined,
+          dateOfBirth: dateOfBirth || undefined,
+          address: address.trim() || undefined,
+        },
       })
       onBooked(result)
     } catch (err) {
@@ -270,6 +278,33 @@ function BookingFormModal({
             type='tel'
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
+            className='w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+          />
+        </div>
+
+        <div className='mb-4'>
+          <label htmlFor='patient-dob' className='mb-1.5 block text-sm font-medium text-gray-700'>
+            Date of birth (optional)
+          </label>
+          <input
+            id='patient-dob'
+            type='date'
+            value={dateOfBirth}
+            max={new Date().toISOString().slice(0, 10)}
+            onChange={(e) => setDateOfBirth(e.target.value)}
+            className='w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+          />
+        </div>
+
+        <div className='mb-4'>
+          <label htmlFor='patient-address' className='mb-1.5 block text-sm font-medium text-gray-700'>
+            Address (optional)
+          </label>
+          <input
+            id='patient-address'
+            type='text'
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
             className='w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
           />
         </div>

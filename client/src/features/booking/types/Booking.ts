@@ -24,4 +24,6 @@ export type PatientInput = {
   name: string
   email: string
   phone?: string
+  dateOfBirth?: string
+  address?: string
 }
