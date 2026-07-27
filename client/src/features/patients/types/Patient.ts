@@ -1,4 +1,5 @@
 import { type AppointmentStatus } from '../../appointments/types/Appointment'
+import { type DocumentRequestStatus } from '../../documents/types/DocumentRequest'
 
 export type Patient = {
   id: string
@@ -20,8 +21,17 @@ export type PatientAppointment = {
   provider: { id: string; displayName: string | null }
 }
 
+export type PatientDocumentRequest = {
+  id: string
+  documentType: string
+  message: string | null
+  status: DocumentRequestStatus
+  createdAt: string
+}
+
 export type PatientDetail = Patient & {
   appointments: PatientAppointment[]
+  documentRequests: PatientDocumentRequest[]
 }
 
 export type PatientUpdate = Partial<{

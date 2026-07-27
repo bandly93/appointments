@@ -5,6 +5,7 @@ import AllAppointments from "../features/appointments/pages/AllAppointments"
 import Schedule from "../features/schedule/pages/Schedule"
 import Patients from "../features/patients/pages/Patients"
 import PatientDetail from "../features/patients/pages/PatientDetail"
+import DocumentRequests from "../features/documents/pages/DocumentRequests"
 import Users from "../features/users/pages/Users"
 import ProtectedRoute from "../features/auth/components/ProtectedRoute"
 import AdminRoute from "../features/auth/components/AdminRoute"
@@ -51,6 +52,9 @@ function App() {
         </Route>
         <Route element={<RoleRoute roles={['STAFF', 'ADMIN', 'PROVIDER']} />}>
           <Route path='/booking-requests' element={<BookingRequests />} />
+        </Route>
+        <Route element={<RoleRoute roles={['STAFF', 'ADMIN']} />}>
+          <Route path='/document-requests' element={<DocumentRequests />} />
         </Route>
         <Route element={<RoleRoute roles={['PROVIDER']} />}>
           <Route path='/my-availability' element={<AvailabilityManager />} />

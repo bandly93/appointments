@@ -1,9 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useAuth } from '../../auth/AuthContext'
 import { getPatient, updatePatient } from '../api/patientsApi'
 import { type PatientDetail as PatientDetailType } from '../types/Patient'
 import Navbar from '../../layout/Navbar'
+import DocumentStatusBadge from '../../documents/components/StatusBadge'
+import { documentRequestEvents, DOCUMENT_REQUESTS_CHANGED } from '../../documents/events'
 
 function formatDob(dateOfBirth: string | null): string {
   if (!dateOfBirth) return '—'
@@ -23,7 +25,7 @@ export default function PatientDetail() {
   const [isSaving, setIsSaving] = useState(false)
   const [form, setForm] = useState({ name: '', phone: '', dateOfBirth: '', address: '' })
 
-  useEffect(() => {
+  const load = useCallback(() => {
     if (!patientId) return
     getPatient(authFetch, patientId)
       .then((p) => {
@@ -34,6 +36,14 @@ export default function PatientDetail() {
       .finally(() => setLoading(false))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [patientId])
+
+  useEffect(() => {
+    load()
+  }, [load])
+
+  // A document request fulfilled/declined elsewhere (Documents page) should
+  // reflect here without a manual refresh.
+  useEffect(() => documentRequestEvents.subscribe(DOCUMENT_REQUESTS_CHANGED, load), [load])
 
   async function handleSave() {
     if (!patientId || !patient) return
@@ -198,6 +208,38 @@ export default function PatientDetail() {
               </div>
             ))
             : <div className='px-4 py-10 text-center text-gray-500'>No appointments yet</div>
+          }
+        </div>
+
+        <h2 className='text-lg font-semibold text-gray-900 mt-6 mb-2'>
+          Document requests ({patient.documentRequests.length})
+        </h2>
+        <div className='overflow-x-auto rounded-lg border border-gray-200 shadow-sm'>
+          <div className='grid grid-cols-[1fr_1.6fr_150px_150px] bg-gray-50'>
+            <div className='px-4 py-3 text-sm font-semibold text-gray-700'>Document</div>
+            <div className='px-4 py-3 text-sm font-semibold text-gray-700'>Message</div>
+            <div className='px-4 py-3 text-sm font-semibold text-gray-700'>Requested</div>
+            <div className='px-4 py-3 text-sm font-semibold text-gray-700'>Status</div>
+          </div>
+          {patient.documentRequests.length !== 0
+            ? patient.documentRequests.map((d) => (
+              <div key={d.id} className='grid grid-cols-[1fr_1.6fr_150px_150px] border-t border-gray-200'>
+                <div className='px-4 py-3 text-sm text-gray-900'>{d.documentType}</div>
+                <div className='px-4 py-3 text-sm text-gray-700'>
+                  {d.message
+                    ? <span className='italic truncate block' title={d.message}>“{d.message}”</span>
+                    : <span className='text-gray-400'>—</span>
+                  }
+                </div>
+                <div className='px-4 py-3 text-sm text-gray-700'>
+                  {new Date(d.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                </div>
+                <div className='px-4 py-3 text-sm'>
+                  <DocumentStatusBadge status={d.status} />
+                </div>
+              </div>
+            ))
+            : <div className='px-4 py-10 text-center text-gray-500'>No document requests yet</div>
           }
         </div>
       </div>
