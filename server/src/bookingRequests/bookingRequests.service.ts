@@ -99,14 +99,19 @@ export async function createBookingRequest(rawInput: unknown) {
       { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }
     );
 
-    // Don't let a mail-provider hiccup fail an already-committed booking —
-    // the patient can request a new code via resendVerificationCode.
+    // A mail-provider hiccup shouldn't fail an already-committed booking —
+    // the patient can still use the my-booking link, or request a new code —
+    // but the caller needs to know delivery failed so it isn't silently lost.
     const link = buildMyBookingLink(bookingRequest.id, rawToken, rawCode);
-    sendVerificationEmail(email, rawCode, link).catch((err) => {
+    let emailSent = true;
+    try {
+      await sendVerificationEmail(email, rawCode, link);
+    } catch (err) {
+      emailSent = false;
       console.error("Failed to send verification email", err);
-    });
+    }
 
-    return { bookingRequest, accessToken: rawToken };
+    return { bookingRequest, accessToken: rawToken, emailSent };
   } catch (err) {
     if (err instanceof Error && err.message === "SLOT_UNAVAILABLE") throw err;
     if (err instanceof Prisma.PrismaClientKnownRequestError && (err.code === "P2002" || err.code === "P2034")) {
@@ -207,7 +212,12 @@ export async function resendVerificationCode(id: string, rawToken: string) {
     verificationAttempts: 0,
   });
 
-  await sendVerificationEmail(existing.patient.email, rawCode, buildMyBookingLink(id, rawToken, rawCode));
+  try {
+    await sendVerificationEmail(existing.patient.email, rawCode, buildMyBookingLink(id, rawToken, rawCode));
+  } catch (err) {
+    console.error("Failed to send verification email", err);
+    throw new Error("EMAIL_SEND_FAILED");
+  }
 }
 
 export function listBookingRequests(status?: string) {

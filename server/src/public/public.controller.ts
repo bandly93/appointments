@@ -23,8 +23,8 @@ export async function getPublicProviders(_req: Request, res: Response) {
 
 export async function postBookingRequest(req: Request, res: Response) {
   try {
-    const { bookingRequest, accessToken } = await createBookingRequest(req.body);
-    res.status(201).json({ success: true, bookingRequest, accessToken });
+    const { bookingRequest, accessToken, emailSent } = await createBookingRequest(req.body);
+    res.status(201).json({ success: true, bookingRequest, accessToken, emailSent });
   } catch (err) {
     if (err instanceof Error && err.message === "INVALID_INPUT") {
       return res.status(400).json({ error: "Enter valid booking details" });
@@ -126,6 +126,9 @@ export async function postResendVerificationCode(req: Request, res: Response) {
     }
     if (err instanceof Error && err.message === "INVALID_STATUS") {
       return res.status(409).json({ error: "This request has already been verified" });
+    }
+    if (err instanceof Error && err.message === "EMAIL_SEND_FAILED") {
+      return res.status(502).json({ error: "Failed to send the email. Please try again shortly." });
     }
     throw err;
   }
