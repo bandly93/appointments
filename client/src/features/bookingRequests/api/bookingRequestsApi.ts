@@ -4,9 +4,15 @@ const API_URL = import.meta.env.VITE_API_URL
 
 type AuthFetch = (input: RequestInfo, init?: RequestInit) => Promise<Response>
 
-export async function getBookingRequests(authFetch: AuthFetch, status?: string): Promise<BookingRequest[]> {
-  const url = status ? `${API_URL}/api/booking-requests?status=${status}` : `${API_URL}/api/booking-requests`
-  const res = await authFetch(url)
+export async function getBookingRequests(
+  authFetch: AuthFetch,
+  filters: { status?: string; providerId?: string } = {},
+): Promise<BookingRequest[]> {
+  const params = new URLSearchParams()
+  if (filters.status) params.set('status', filters.status)
+  if (filters.providerId) params.set('providerId', filters.providerId)
+  const query = params.toString()
+  const res = await authFetch(`${API_URL}/api/booking-requests${query ? `?${query}` : ''}`)
   const data = await res.json()
 
   if (!res.ok) {

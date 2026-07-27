@@ -7,7 +7,7 @@ import ProviderSelect from './ProviderSelect'
 
 const STATUSES: AppointmentStatus[] = ['SCHEDULED', 'COMPLETED', 'CANCELLED']
 
-export default function AppointmentsTable({ date }: { date: string }) {
+export default function AppointmentsTable({ date, refreshToken = 0 }: { date: string; refreshToken?: number }) {
   const { authFetch, user } = useAuth()
   const canEditStatus = user?.role === 'STAFF' || user?.role === 'ADMIN'
 
@@ -27,7 +27,7 @@ export default function AppointmentsTable({ date }: { date: string }) {
       .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load appointments'))
       .finally(() => setLoading(false))
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [date, providerId])
+  }, [date, providerId, refreshToken])
 
   async function handleStatusChange(id: string, status: AppointmentStatus) {
     setSavingId(id)

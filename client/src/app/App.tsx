@@ -39,7 +39,7 @@ function App() {
         <Route element={<AdminRoute />}>
           <Route path='/admin/users' element={<Users />} />
         </Route>
-        <Route element={<RoleRoute roles={['STAFF', 'ADMIN']} />}>
+        <Route element={<RoleRoute roles={['STAFF', 'ADMIN', 'PROVIDER']} />}>
           <Route path='/booking-requests' element={<BookingRequests />} />
         </Route>
         <Route element={<RoleRoute roles={['PROVIDER']} />}>

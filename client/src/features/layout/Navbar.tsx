@@ -1,6 +1,7 @@
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import Logo from '../../shared/components/Logo'
+import { usePendingRequestCount } from '../bookingRequests/hooks/usePendingRequestCount'
 
 const navLinkClasses = (isActive: boolean) =>
   `rounded-md px-3 py-1.5 text-sm font-medium ${
@@ -10,6 +11,7 @@ const navLinkClasses = (isActive: boolean) =>
 const Navbar = () => {
   const { user, logout } = useAuth()
   const { pathname } = useLocation()
+  const pendingCount = usePendingRequestCount()
 
   return (
     <header className='flex items-center justify-between border-b border-gray-200 px-6 py-3'>
@@ -27,9 +29,14 @@ const Navbar = () => {
               Users
             </Link>
           )}
-          {(user?.role === 'STAFF' || user?.role === 'ADMIN') && (
+          {(user?.role === 'STAFF' || user?.role === 'ADMIN' || user?.role === 'PROVIDER') && (
             <Link to='/booking-requests' className={navLinkClasses(pathname.startsWith('/booking-requests'))}>
               Booking Requests
+              {pendingCount > 0 && (
+                <span className='ml-1.5 inline-flex items-center justify-center rounded-full bg-amber-100 px-1.5 py-0.5 text-xs font-semibold text-amber-800'>
+                  {pendingCount}
+                </span>
+              )}
             </Link>
           )}
           {user?.role === 'PROVIDER' && (
