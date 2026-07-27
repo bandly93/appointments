@@ -21,6 +21,9 @@ const Navbar = () => {
           <Link to='/dashboard' className={navLinkClasses(pathname === '/dashboard')}>
             Dashboard
           </Link>
+          <Link to='/schedule' className={navLinkClasses(pathname === '/schedule')}>
+            Schedule
+          </Link>
           <Link to='/appointments' className={navLinkClasses(pathname === '/appointments')}>
             All Appointments
           </Link>
