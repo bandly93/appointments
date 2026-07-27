@@ -93,6 +93,10 @@ model Patient {
   name  String
   phone String?
 
+  // Stored as YYYY-MM-DD to avoid timezone shifts on a date-only value.
+  dateOfBirth String?
+  address     String?
+
   bookingRequests BookingRequest[]
   appointments    Appointment[]
 

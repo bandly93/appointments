@@ -38,6 +38,8 @@ const patientSchema = z.object({
   name: z.string().trim().min(1),
   email: z.string().trim().email(),
   phone: z.string().trim().min(1).optional(),
+  dateOfBirth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  address: z.string().trim().min(1).max(300).optional(),
 });
 
 const createBookingRequestSchema = z.object({
@@ -79,10 +81,16 @@ export async function createBookingRequest(rawInput: unknown) {
           await updateBookingRequest(existingBooking.id, { status: "EXPIRED" }, tx);
         }
 
+        const contact = {
+          name: patientInput.name,
+          phone: patientInput.phone,
+          dateOfBirth: patientInput.dateOfBirth,
+          address: patientInput.address,
+        };
         const existingPatient = await findPatientByEmail(email, tx);
         const patient = existingPatient
-          ? await updatePatientContact(existingPatient.id, { name: patientInput.name, phone: patientInput.phone }, tx)
-          : await insertPatient({ email, name: patientInput.name, phone: patientInput.phone }, tx);
+          ? await updatePatientContact(existingPatient.id, contact, tx)
+          : await insertPatient({ email, ...contact }, tx);
 
         const activeCount = await countActiveBookingRequestsForPatient(patient.id, tx);
         if (activeCount >= MAX_ACTIVE_REQUESTS_PER_PATIENT) {
