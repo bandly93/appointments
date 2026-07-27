@@ -12,10 +12,24 @@ import { updateBookingRequest } from "../bookingRequests/bookingRequests.reposit
 
 const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 
-export function listAppointments(status?: string, date?: string, providerId?: string) {
-  const dateRange = date && dateSchema.safeParse(date).success
-    ? { from: new Date(`${date}T00:00:00.000Z`), to: new Date(`${date}T23:59:59.999Z`) }
-    : undefined;
+type ListFilters = {
+  status?: string;
+  date?: string;
+  from?: string;
+  to?: string;
+  providerId?: string;
+};
+
+export function listAppointments({ status, date, from, to, providerId }: ListFilters) {
+  const isDate = (value?: string): value is string => !!value && dateSchema.safeParse(value).success;
+
+  // `from`/`to` select a range (e.g. a calendar week); `date` remains the
+  // single-day shorthand used by the dashboard.
+  const dateRange = isDate(from) && isDate(to)
+    ? { from: new Date(`${from}T00:00:00.000Z`), to: new Date(`${to}T23:59:59.999Z`) }
+    : isDate(date)
+      ? { from: new Date(`${date}T00:00:00.000Z`), to: new Date(`${date}T23:59:59.999Z`) }
+      : undefined;
 
   return findAppointments(status as AppointmentStatus | undefined, dateRange, providerId);
 }

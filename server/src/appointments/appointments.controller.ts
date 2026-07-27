@@ -3,10 +3,14 @@ import { Request, Response } from "express";
 import { listAppointments, editAppointment, removeAppointment } from "./appointments.service.js";
 
 export async function getAppointments(req: Request, res: Response) {
-  const status = typeof req.query.status === "string" ? req.query.status : undefined;
-  const date = typeof req.query.date === "string" ? req.query.date : undefined;
-  const providerId = typeof req.query.providerId === "string" ? req.query.providerId : undefined;
-  const appointments = await listAppointments(status, date, providerId);
+  const queryString = (name: string) => (typeof req.query[name] === "string" ? (req.query[name] as string) : undefined);
+  const appointments = await listAppointments({
+    status: queryString("status"),
+    date: queryString("date"),
+    from: queryString("from"),
+    to: queryString("to"),
+    providerId: queryString("providerId"),
+  });
   res.json({ success: true, appointments });
 }
 
