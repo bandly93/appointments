@@ -32,6 +32,15 @@ enum BookingStatus {
   EXPIRED
 }
 
+enum DocumentRequestStatus {
+  UNVERIFIED
+  PENDING
+  FULFILLED
+  DECLINED
+  CANCELLED
+  EXPIRED
+}
+
 enum AppointmentStatus {
   SCHEDULED
   COMPLETED
@@ -97,11 +106,34 @@ model Patient {
   dateOfBirth String?
   address     String?
 
-  bookingRequests BookingRequest[]
-  appointments    Appointment[]
+  bookingRequests   BookingRequest[]
+  appointments      Appointment[]
+  documentRequests  DocumentRequest[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model DocumentRequest {
+  id        String  @id @default(cuid())
+  patientId String
+  patient   Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  documentType String
+  message      String?
+  status       DocumentRequestStatus @default(UNVERIFIED)
+
+  accessTokenHash String @unique
+
+  // Same email-confirmation pattern as BookingRequest.
+  verificationCodeHash  String?
+  verificationExpiresAt DateTime?
+  verificationAttempts  Int       @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([patientId])
 }
 
 model BookingRequest {

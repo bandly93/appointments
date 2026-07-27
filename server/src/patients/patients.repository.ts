@@ -42,6 +42,10 @@ export function findPatientWithHistory(id: string) {
         },
         orderBy: { startsAt: "desc" },
       },
+      documentRequests: {
+        select: { id: true, documentType: true, message: true, status: true, createdAt: true },
+        orderBy: { createdAt: "desc" },
+      },
     },
   });
 }

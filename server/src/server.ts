@@ -9,6 +9,7 @@ import availabilityRouter from './availability/availability.routes.js'
 import bookingRequestsRouter from './bookingRequests/bookingRequests.routes.js'
 import appointmentsRouter from './appointments/appointments.routes.js'
 import patientsRouter from './patients/patients.routes.js'
+import documentRequestsRouter from './documentRequests/documentRequests.routes.js'
 import publicRouter from './public/public.routes.js'
 import { errorHandler, notFoundHandler } from './lib/errorHandler.js'
 
@@ -31,6 +32,7 @@ app.use('/api/availability', availabilityRouter);
 app.use('/api/booking-requests', bookingRequestsRouter);
 app.use('/api/appointments', appointmentsRouter);
 app.use('/api/patients', patientsRouter);
+app.use('/api/document-requests', documentRequestsRouter);
 app.use('/api/public', publicRouter);
 
 app.use(notFoundHandler);
