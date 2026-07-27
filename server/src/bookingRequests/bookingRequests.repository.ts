@@ -63,9 +63,12 @@ export function findBookingRequestById(id: string) {
   return prisma.bookingRequest.findUnique({ where: { id }, select: bookingRequestSelect });
 }
 
-export function findBookingRequests(status?: BookingStatus) {
+export function findBookingRequests(status?: BookingStatus, providerId?: string) {
   return prisma.bookingRequest.findMany({
-    where: status ? { status } : undefined,
+    where: {
+      ...(status ? { status } : {}),
+      ...(providerId ? { providerId } : {}),
+    },
     select: bookingRequestSelect,
     orderBy: { startsAt: "asc" },
   });

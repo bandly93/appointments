@@ -10,7 +10,8 @@ import {
 
 export async function getBookingRequests(req: Request, res: Response) {
   const status = typeof req.query.status === "string" ? req.query.status : undefined;
-  const bookingRequests = await listBookingRequests(status);
+  const providerId = typeof req.query.providerId === "string" ? req.query.providerId : undefined;
+  const bookingRequests = await listBookingRequests(status, providerId);
   res.json({ success: true, bookingRequests });
 }
 
@@ -31,11 +32,14 @@ export async function patchBookingRequest(req: Request, res: Response) {
 
 export async function postApprove(req: Request, res: Response) {
   try {
-    const appointment = await approveBookingRequest(String(req.params.id));
+    const appointment = await approveBookingRequest(String(req.params.id), req.user!);
     res.json({ success: true, appointment });
   } catch (err) {
     if (err instanceof Error && err.message === "NOT_FOUND") {
       return res.status(404).json({ error: "Booking request not found" });
+    }
+    if (err instanceof Error && err.message === "FORBIDDEN") {
+      return res.status(403).json({ error: "You can only manage requests for your own schedule" });
     }
     if (err instanceof Error && err.message === "INVALID_STATUS") {
       return res.status(409).json({ error: "Only pending requests can be approved" });
@@ -46,11 +50,14 @@ export async function postApprove(req: Request, res: Response) {
 
 export async function postReject(req: Request, res: Response) {
   try {
-    const bookingRequest = await rejectBookingRequest(String(req.params.id));
+    const bookingRequest = await rejectBookingRequest(String(req.params.id), req.user!);
     res.json({ success: true, bookingRequest });
   } catch (err) {
     if (err instanceof Error && err.message === "NOT_FOUND") {
       return res.status(404).json({ error: "Booking request not found" });
+    }
+    if (err instanceof Error && err.message === "FORBIDDEN") {
+      return res.status(403).json({ error: "You can only manage requests for your own schedule" });
     }
     if (err instanceof Error && err.message === "INVALID_STATUS") {
       return res.status(409).json({ error: "Only pending requests can be rejected" });

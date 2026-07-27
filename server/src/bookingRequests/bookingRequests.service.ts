@@ -227,8 +227,18 @@ export async function resendVerificationCode(id: string, rawToken: string) {
   }
 }
 
-export function listBookingRequests(status?: string) {
-  return findBookingRequests(status as BookingStatus | undefined);
+export function listBookingRequests(status?: string, providerId?: string) {
+  return findBookingRequests(status as BookingStatus | undefined, providerId);
+}
+
+// Staff/admin can act on any request; providers only on requests for their own
+// schedule — the route lets PROVIDER through, so ownership is enforced here.
+type Actor = { sub: string; role: string };
+
+function assertActorCanDecide(existing: { providerId: string }, actor: Actor) {
+  if (actor.role === "PROVIDER" && existing.providerId !== actor.sub) {
+    throw new Error("FORBIDDEN");
+  }
 }
 
 const staffUpdateSchema = z.object({
@@ -245,9 +255,10 @@ export async function updateBookingRequestAsStaff(id: string, rawInput: unknown)
   return updateBookingRequest(id, { notes: parsed.data.notes });
 }
 
-export async function approveBookingRequest(id: string) {
+export async function approveBookingRequest(id: string, actor: Actor) {
   const existing = await findBookingRequestById(id);
   if (!existing) throw new Error("NOT_FOUND");
+  assertActorCanDecide(existing, actor);
   if (existing.status !== "PENDING") throw new Error("INVALID_STATUS");
 
   return prisma.$transaction(async (tx) => {
@@ -266,9 +277,10 @@ export async function approveBookingRequest(id: string) {
   });
 }
 
-export async function rejectBookingRequest(id: string) {
+export async function rejectBookingRequest(id: string, actor: Actor) {
   const existing = await findBookingRequestById(id);
   if (!existing) throw new Error("NOT_FOUND");
+  assertActorCanDecide(existing, actor);
   if (existing.status !== "PENDING") throw new Error("INVALID_STATUS");
 
   return updateBookingRequest(id, { status: "REJECTED" });
