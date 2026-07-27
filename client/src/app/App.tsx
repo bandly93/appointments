@@ -13,6 +13,8 @@ import Landing from "../features/landing/pages/Landing"
 import BookingPage from "../features/booking/pages/BookingPage"
 import MyBookingPage from "../features/booking/pages/MyBookingPage"
 import ProvidersList from "../features/booking/pages/ProvidersList"
+import RequestDocumentsPage from "../features/documents/pages/RequestDocumentsPage"
+import MyDocumentsPage from "../features/documents/pages/MyDocumentsPage"
 import BookingRequests from "../features/bookingRequests/pages/BookingRequests"
 import AvailabilityManager from "../features/availability/pages/AvailabilityManager"
 import { useAuth } from "../features/auth/AuthContext"
@@ -34,6 +36,8 @@ function App() {
       <Route path='/providers' element={<ProvidersList />} />
       <Route path='/book/:providerId' element={<BookingPage />} />
       <Route path='/my-booking/:requestId' element={<MyBookingPage />} />
+      <Route path='/request-documents' element={<RequestDocumentsPage />} />
+      <Route path='/my-documents/:requestId' element={<MyDocumentsPage />} />
 
       {/* non-public routes */}
       <Route element={<ProtectedRoute />}>

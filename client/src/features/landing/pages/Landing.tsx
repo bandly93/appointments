@@ -40,6 +40,12 @@ export default function Landing() {
               Find a provider
             </Link>
             <Link
+              to='/request-documents'
+              className='text-sm text-gray-500 hover:text-gray-900 transition'
+            >
+              Already a patient? Request your documents
+            </Link>
+            <Link
               to='/login'
               className='text-sm text-gray-400 hover:text-gray-700 transition'
             >
