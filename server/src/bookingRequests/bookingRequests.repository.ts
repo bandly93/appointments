@@ -25,6 +25,12 @@ export function findActiveBookingForSlot(providerId: string, startsAt: Date, cli
   });
 }
 
+export function countActiveBookingRequestsForPatient(patientId: string, client: PrismaOrTx = prisma) {
+  return client.bookingRequest.count({
+    where: { patientId, status: { in: ["UNVERIFIED", "PENDING"] } },
+  });
+}
+
 type InsertData = {
   providerId: string;
   patientId: string;

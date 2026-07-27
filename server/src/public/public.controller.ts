@@ -35,6 +35,11 @@ export async function postBookingRequest(req: Request, res: Response) {
     if (err instanceof Error && err.message === "SLOT_UNAVAILABLE") {
       return res.status(409).json({ error: "That time is no longer available" });
     }
+    if (err instanceof Error && err.message === "TOO_MANY_ACTIVE_REQUESTS") {
+      return res.status(429).json({
+        error: "You already have too many pending appointment requests with this email. Confirm or cancel one before requesting another.",
+      });
+    }
     throw err;
   }
 }

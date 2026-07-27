@@ -5,6 +5,7 @@ import { Prisma } from "../generated/prisma/client.js";
 import type { BookingStatus } from "../generated/prisma/enums.js";
 import {
   findActiveBookingForSlot,
+  countActiveBookingRequestsForPatient,
   insertBookingRequest,
   findBookingRequestByIdWithSecrets,
   findBookingRequestById,
@@ -21,6 +22,7 @@ import { sendVerificationEmail } from "../lib/mailer.js";
 
 const VERIFICATION_TTL_MS = 10 * 60 * 1000;
 const MAX_VERIFICATION_ATTEMPTS = 5;
+const MAX_ACTIVE_REQUESTS_PER_PATIENT = 3;
 const CLIENT_URL = process.env.CLIENT_URL ?? "http://localhost:5173";
 
 function buildMyBookingLink(id: string, rawToken: string, code: string): string {
@@ -81,6 +83,11 @@ export async function createBookingRequest(rawInput: unknown) {
         const patient = existingPatient
           ? await updatePatientContact(existingPatient.id, { name: patientInput.name, phone: patientInput.phone }, tx)
           : await insertPatient({ email, name: patientInput.name, phone: patientInput.phone }, tx);
+
+        const activeCount = await countActiveBookingRequestsForPatient(patient.id, tx);
+        if (activeCount >= MAX_ACTIVE_REQUESTS_PER_PATIENT) {
+          throw new Error("TOO_MANY_ACTIVE_REQUESTS");
+        }
 
         return insertBookingRequest(
           {
