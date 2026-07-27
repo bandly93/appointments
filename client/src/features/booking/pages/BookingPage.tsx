@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom'
 import { getProvider, getSlots, createBookingRequest } from '../api/publicBookingApi'
 import { type Slot, type Provider } from '../types/Booking'
 import Modal from '../../../shared/components/Modal'
+import PublicHeader from '../../../shared/components/PublicHeader'
 import VerifyCodeForm from '../components/VerifyCodeForm'
 
 function todayDateString(): string {
@@ -37,28 +38,36 @@ export default function BookingPage() {
   }, [providerId, date])
 
   if (!providerId) {
-    return <div className='p-6 text-center text-gray-500'>Provider not found</div>
+    return (
+      <div className='min-h-screen bg-gray-50'>
+        <PublicHeader />
+        <div className='p-6 text-center text-gray-500'>Provider not found</div>
+      </div>
+    )
   }
 
   if (booking && !verified) {
     const link = `${window.location.origin}/my-booking/${booking.id}?token=${booking.accessToken}`
     return (
-      <div className='w-full max-w-xl mx-auto p-6 flex flex-col gap-4'>
-        {!booking.emailSent && (
-          <div className='rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800'>
-            We couldn't send the verification email to that address. Try "Resend code" below, or double-check the
-            address you entered — if it keeps failing, contact us for help confirming your booking.
-          </div>
-        )}
-        <SaveLinkBox
-          link={link}
-          message="Save this link now — if you leave this page before confirming, it's the only way back in to enter your code or request a new one."
-        />
-        <VerifyCodeForm
-          bookingId={booking.id}
-          token={booking.accessToken}
-          onVerified={() => setVerified(true)}
-        />
+      <div className='min-h-screen bg-gray-50'>
+        <PublicHeader />
+        <div className='w-full max-w-xl mx-auto p-6 flex flex-col gap-4'>
+          {!booking.emailSent && (
+            <div className='rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800'>
+              We couldn't send the verification email to that address. Try "Resend code" below, or double-check the
+              address you entered — if it keeps failing, contact us for help confirming your booking.
+            </div>
+          )}
+          <SaveLinkBox
+            link={link}
+            message="Save this link now — if you leave this page before confirming, it's the only way back in to enter your code or request a new one."
+          />
+          <VerifyCodeForm
+            bookingId={booking.id}
+            token={booking.accessToken}
+            onVerified={() => setVerified(true)}
+          />
+        </div>
       </div>
     )
   }
@@ -66,77 +75,83 @@ export default function BookingPage() {
   if (booking && verified) {
     const link = `${window.location.origin}/my-booking/${booking.id}?token=${booking.accessToken}`
     return (
-      <div className='w-full max-w-xl mx-auto p-6'>
-        <div className='rounded-lg border border-green-200 bg-green-50 p-6'>
-          <h1 className='text-xl font-semibold text-green-900 mb-2'>Request submitted</h1>
-          <SaveLinkBox
-            link={link}
-            message='Your appointment request has been sent for approval. Save this link to view, edit, or cancel your request:'
-            bare
-          />
+      <div className='min-h-screen bg-gray-50'>
+        <PublicHeader />
+        <div className='w-full max-w-xl mx-auto p-6'>
+          <div className='rounded-lg border border-green-200 bg-green-50 p-6'>
+            <h1 className='text-xl font-semibold text-green-900 mb-2'>Request submitted</h1>
+            <SaveLinkBox
+              link={link}
+              message='Your appointment request has been sent for approval. Save this link to view, edit, or cancel your request:'
+              bare
+            />
+          </div>
         </div>
       </div>
     )
   }
 
   return (
-    <div className='w-full max-w-3xl mx-auto p-6'>
-      <h1 className='text-2xl font-semibold text-gray-900 mb-1'>
-        Book with {provider?.displayName ?? 'this provider'}
-      </h1>
-      <p className='text-sm text-gray-500 mb-4'>Pick a date and an open time slot.</p>
+    <div className='min-h-screen bg-gray-50'>
+      <PublicHeader />
+      <div className='w-full max-w-3xl mx-auto p-6'>
+        <h1 className='text-2xl font-semibold text-gray-900 mb-1'>
+          Book with {provider?.displayName ?? 'this provider'}
+        </h1>
+        <p className='text-sm text-gray-500 mb-4'>Pick a date and an open time slot.</p>
 
-      <div className='mb-4'>
-        <label htmlFor='booking-date' className='mb-1.5 block text-sm font-medium text-gray-700'>
-          Date
-        </label>
-        <input
-          id='booking-date'
-          type='date'
-          value={date}
-          min={todayDateString()}
-          onChange={(e) => setDate(e.target.value)}
-          className='rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
-        />
-      </div>
-
-      {error && (
-        <div className='mb-4 rounded-md bg-red-50 border border-red-200 text-red-700 px-4 py-2 text-sm'>
-          {error}
+        <div className='mb-4'>
+          <label htmlFor='booking-date' className='mb-1.5 block text-sm font-medium text-gray-700'>
+            Date
+          </label>
+          <input
+            id='booking-date'
+            type='date'
+            value={date}
+            min={todayDateString()}
+            onChange={(e) => setDate(e.target.value)}
+            className='rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+          />
         </div>
-      )}
 
-      {loading
-        ? <div className='py-10 text-center text-gray-500'>Loading....</div>
-        : slots.length === 0
-          ? <div className='py-10 text-center text-gray-500'>No open slots on this date</div>
-          : (
-            <div className='grid grid-cols-3 sm:grid-cols-4 gap-2'>
-              {slots.map((slot) => (
-                <button
-                  key={slot.startsAt}
-                  type='button'
-                  onClick={() => setSelectedSlot(slot)}
-                  className='rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:border-blue-500 hover:text-blue-700'
-                >
-                  {new Date(slot.startsAt).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}
-                </button>
-              ))}
-            </div>
-          )
-      }
+        {error && (
+          <div className='mb-4 rounded-md bg-red-50 border border-red-200 text-red-700 px-4 py-2 text-sm'>
+            {error}
+          </div>
+        )}
 
-      {selectedSlot && (
-        <BookingFormModal
-          providerId={providerId}
-          slot={selectedSlot}
-          onClose={() => setSelectedSlot(null)}
-          onBooked={(result) => {
-            setBooking(result)
-            setSelectedSlot(null)
-          }}
-        />
-      )}
+        {loading
+          ? <div className='py-10 text-center text-gray-500'>Loading....</div>
+          : slots.length === 0
+            ? <div className='py-10 text-center text-gray-500'>No open slots on this date</div>
+            : (
+              <div className='grid grid-cols-3 sm:grid-cols-4 gap-2'>
+                {slots.map((slot) => (
+                  <button
+                    key={slot.startsAt}
+                    type='button'
+                    onClick={() => setSelectedSlot(slot)}
+                    className='rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 hover:border-blue-500 hover:text-blue-700'
+                  >
+                    {new Date(slot.startsAt).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}
+                  </button>
+                ))}
+              </div>
+            )
+        }
+
+        {selectedSlot && (
+          <BookingFormModal
+            providerId={providerId}
+            slot={selectedSlot}
+            onClose={() => setSelectedSlot(null)}
+            onBooked={(result) => {
+              setBooking(result)
+              setSelectedSlot(null)
+            }}
+          />
+        )}
+      </div>
     </div>
   )
 }

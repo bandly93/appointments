@@ -1,5 +1,6 @@
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
+import Logo from '../../shared/components/Logo'
 
 const navLinkClasses = (isActive: boolean) =>
   `rounded-md px-3 py-1.5 text-sm font-medium ${
@@ -13,9 +14,7 @@ const Navbar = () => {
   return (
     <header className='flex items-center justify-between border-b border-gray-200 px-6 py-3'>
       <div className='flex items-center gap-6'>
-        <Link to='/dashboard' className='text-sm font-semibold text-gray-900'>
-          Appointments
-        </Link>
+        <Logo to='/dashboard' size='sm' />
         <nav className='flex items-center gap-1'>
           <Link to='/dashboard' className={navLinkClasses(pathname === '/dashboard')}>
             Dashboard
