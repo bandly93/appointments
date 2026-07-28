@@ -10,6 +10,43 @@ function todayDateString(): string {
   return new Date().toISOString().slice(0, 10)
 }
 
+const SLOT_PERIODS = [
+  { label: 'Morning', test: (h: number) => h < 12 },
+  { label: 'Afternoon', test: (h: number) => h >= 12 && h < 17 },
+  { label: 'Evening', test: (h: number) => h >= 17 },
+] as const
+
+function SlotPicker({ slots, onSelect }: { slots: Slot[]; onSelect: (slot: Slot) => void }) {
+  const groups = SLOT_PERIODS
+    .map((period) => ({
+      label: period.label,
+      slots: slots.filter((s) => period.test(new Date(s.startsAt).getHours())),
+    }))
+    .filter((group) => group.slots.length > 0)
+
+  return (
+    <div className='flex flex-col gap-5'>
+      {groups.map((group) => (
+        <div key={group.label}>
+          <h2 className='text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2'>{group.label}</h2>
+          <div className='grid grid-cols-3 sm:grid-cols-4 gap-2'>
+            {group.slots.map((slot) => (
+              <button
+                key={slot.startsAt}
+                type='button'
+                onClick={() => onSelect(slot)}
+                className='rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 hover:border-blue-500 hover:text-blue-700 transition-colors'
+              >
+                {new Date(slot.startsAt).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}
+              </button>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 export default function BookingPage() {
   const { providerId } = useParams<{ providerId: string }>()
   const [provider, setProvider] = useState<Provider | undefined>(undefined)
@@ -123,21 +160,23 @@ export default function BookingPage() {
         {loading
           ? <div className='py-10 text-center text-gray-500'>Loading....</div>
           : slots.length === 0
-            ? <div className='py-10 text-center text-gray-500'>No open slots on this date</div>
-            : (
-              <div className='grid grid-cols-3 sm:grid-cols-4 gap-2'>
-                {slots.map((slot) => (
-                  <button
-                    key={slot.startsAt}
-                    type='button'
-                    onClick={() => setSelectedSlot(slot)}
-                    className='rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 hover:border-blue-500 hover:text-blue-700'
-                  >
-                    {new Date(slot.startsAt).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}
-                  </button>
-                ))}
+            ? (
+              <div className='py-10 text-center'>
+                <p className='text-gray-500 mb-3'>No open slots on this date</p>
+                <button
+                  type='button'
+                  onClick={() => {
+                    const next = new Date(`${date}T00:00:00`)
+                    next.setDate(next.getDate() + 1)
+                    setDate(next.toISOString().slice(0, 10))
+                  }}
+                  className='rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50'
+                >
+                  Try the next day →
+                </button>
               </div>
             )
+            : <SlotPicker slots={slots} onSelect={setSelectedSlot} />
         }
 
         {selectedSlot && (
