@@ -5,9 +5,16 @@ import { usePendingRequestCount } from '../bookingRequests/hooks/usePendingReque
 import { usePendingDocumentRequestCount } from '../documents/hooks/usePendingDocumentRequestCount'
 
 const navLinkClasses = (isActive: boolean) =>
-  `rounded-md px-3 py-1.5 text-sm font-medium ${
+  `rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
     isActive ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
   }`
+
+const badgeClasses =
+  'ml-1.5 inline-flex items-center justify-center rounded-full bg-amber-100 px-1.5 py-0.5 text-xs font-semibold text-amber-800'
+
+function NavDivider() {
+  return <span className='mx-1 h-5 w-px shrink-0 bg-gray-200' aria-hidden='true' />
+}
 
 const Navbar = () => {
   const { user, logout } = useAuth()
@@ -19,48 +26,60 @@ const Navbar = () => {
     <header className='flex items-center justify-between border-b border-gray-200 px-6 py-3'>
       <div className='flex items-center gap-6'>
         <Logo to='/dashboard' size='sm' />
-        <nav className='flex items-center gap-1'>
-          <Link to='/dashboard' className={navLinkClasses(pathname === '/dashboard')}>
-            Dashboard
-          </Link>
-          <Link to='/schedule' className={navLinkClasses(pathname === '/schedule')}>
-            Schedule
-          </Link>
-          <Link to='/appointments' className={navLinkClasses(pathname === '/appointments')}>
-            All Appointments
-          </Link>
+        <nav className='flex items-center'>
+          {/* Overview: where you land and where you look things up */}
+          <div className='flex items-center gap-0.5'>
+            <Link to='/dashboard' className={navLinkClasses(pathname === '/dashboard')}>
+              Dashboard
+            </Link>
+            <Link to='/schedule' className={navLinkClasses(pathname === '/schedule')}>
+              Schedule
+            </Link>
+            <Link to='/appointments' className={navLinkClasses(pathname === '/appointments')}>
+              All Appointments
+            </Link>
+          </div>
+
+          {(user?.role === 'STAFF' || user?.role === 'ADMIN' || user?.role === 'PROVIDER') && <NavDivider />}
+
+          {/* Action inbox: things waiting on a decision */}
+          <div className='flex items-center gap-0.5'>
+            {(user?.role === 'STAFF' || user?.role === 'ADMIN' || user?.role === 'PROVIDER') && (
+              <Link to='/booking-requests' className={navLinkClasses(pathname.startsWith('/booking-requests'))}>
+                Booking Requests
+                {pendingCount > 0 && <span className={badgeClasses}>{pendingCount}</span>}
+              </Link>
+            )}
+            {(user?.role === 'STAFF' || user?.role === 'ADMIN') && (
+              <Link to='/document-requests' className={navLinkClasses(pathname.startsWith('/document-requests'))}>
+                Documents
+                {pendingDocumentCount > 0 && <span className={badgeClasses}>{pendingDocumentCount}</span>}
+              </Link>
+            )}
+          </div>
+
+          <NavDivider />
+
+          {/* Reference */}
           <Link to='/patients' className={navLinkClasses(pathname.startsWith('/patients'))}>
             Patients
           </Link>
-          {user?.role === 'ADMIN' && (
-            <Link to='/admin/users' className={navLinkClasses(pathname.startsWith('/admin/users'))}>
-              Users
-            </Link>
-          )}
-          {(user?.role === 'STAFF' || user?.role === 'ADMIN' || user?.role === 'PROVIDER') && (
-            <Link to='/booking-requests' className={navLinkClasses(pathname.startsWith('/booking-requests'))}>
-              Booking Requests
-              {pendingCount > 0 && (
-                <span className='ml-1.5 inline-flex items-center justify-center rounded-full bg-amber-100 px-1.5 py-0.5 text-xs font-semibold text-amber-800'>
-                  {pendingCount}
-                </span>
+
+          {/* Account-scoped settings, visually set apart from daily-operations tabs */}
+          {(user?.role === 'PROVIDER' || user?.role === 'ADMIN') && (
+            <>
+              <NavDivider />
+              {user?.role === 'PROVIDER' && (
+                <Link to='/my-availability' className={navLinkClasses(pathname.startsWith('/my-availability'))}>
+                  My Availability
+                </Link>
               )}
-            </Link>
-          )}
-          {(user?.role === 'STAFF' || user?.role === 'ADMIN') && (
-            <Link to='/document-requests' className={navLinkClasses(pathname.startsWith('/document-requests'))}>
-              Documents
-              {pendingDocumentCount > 0 && (
-                <span className='ml-1.5 inline-flex items-center justify-center rounded-full bg-amber-100 px-1.5 py-0.5 text-xs font-semibold text-amber-800'>
-                  {pendingDocumentCount}
-                </span>
+              {user?.role === 'ADMIN' && (
+                <Link to='/admin/users' className={navLinkClasses(pathname.startsWith('/admin/users'))}>
+                  Users
+                </Link>
               )}
-            </Link>
-          )}
-          {user?.role === 'PROVIDER' && (
-            <Link to='/my-availability' className={navLinkClasses(pathname.startsWith('/my-availability'))}>
-              My Availability
-            </Link>
+            </>
           )}
         </nav>
       </div>
