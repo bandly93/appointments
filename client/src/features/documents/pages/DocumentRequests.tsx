@@ -75,39 +75,37 @@ export default function DocumentRequests() {
           ? <div className='py-10 text-center text-gray-500'>Loading....</div>
           : (
             <div className='overflow-x-auto rounded-lg border border-gray-200 shadow-sm'>
-              <div className='grid grid-cols-[1.2fr_1fr_1.4fr_170px_180px] bg-gray-50'>
-                <div className='px-4 py-3 text-sm font-semibold text-gray-700'>Patient</div>
-                <div className='px-4 py-3 text-sm font-semibold text-gray-700'>Document</div>
-                <div className='px-4 py-3 text-sm font-semibold text-gray-700'>Message</div>
-                <div className='px-4 py-3 text-sm font-semibold text-gray-700'>Status</div>
-                <div className='px-4 py-3 text-sm font-semibold text-gray-700'></div>
+              <div className='grid grid-cols-[1.1fr_1fr_1.3fr_260px] bg-gray-50'>
+                <div className='px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500'>Patient</div>
+                <div className='px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500'>Document</div>
+                <div className='px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500'>Message</div>
+                <div className='px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500'>Status</div>
               </div>
+              <div className='divide-y divide-gray-200'>
               {requests.length !== 0
                 ? requests.map((r) => (
-                  <div key={r.id} className='grid grid-cols-[1.2fr_1fr_1.4fr_170px_180px] border-t border-gray-200 items-center'>
-                    <div className='px-4 py-3 text-sm text-gray-900'>
+                  <div key={r.id} className='grid grid-cols-[1.1fr_1fr_1.3fr_260px] items-start hover:bg-gray-50/70 transition-colors'>
+                    <div className='px-4 py-3.5 text-sm text-gray-900'>
                       {r.patient.name}
                       <div className='text-xs text-gray-500'>{r.patient.email}</div>
                       {r.patient.phone && <div className='text-xs text-gray-500'>{r.patient.phone}</div>}
                     </div>
-                    <div className='px-4 py-3 text-sm text-gray-700'>{r.documentType}</div>
-                    <div className='px-4 py-3 text-sm text-gray-700'>
+                    <div className='px-4 py-3.5 text-sm text-gray-700'>{r.documentType}</div>
+                    <div className='px-4 py-3.5 text-sm text-gray-700'>
                       {r.message
                         ? <span className='italic truncate block' title={r.message}>“{r.message}”</span>
                         : <span className='text-gray-400'>—</span>
                       }
                     </div>
-                    <div className='px-4 py-3 text-sm'>
+                    <div className='px-4 py-3.5 text-sm flex flex-col items-start gap-2'>
                       <StatusBadge status={r.status} />
-                    </div>
-                    <div className='px-4 py-3 text-sm flex gap-3'>
                       {r.status === 'PENDING' && (
-                        <>
+                        <div className='flex flex-wrap items-center gap-2'>
                           <button
                             type='button'
                             disabled={actioningId === r.id}
                             onClick={() => void runAction(r.id, () => fulfillDocumentRequest(authFetch, r.id), 'Failed to fulfill request')}
-                            className='text-green-700 hover:text-green-900 disabled:opacity-50'
+                            className='rounded-md bg-green-600 px-3 py-1.5 text-sm font-medium text-white shadow-sm hover:bg-green-500 disabled:opacity-50'
                           >
                             Fulfill
                           </button>
@@ -115,11 +113,11 @@ export default function DocumentRequests() {
                             type='button'
                             disabled={actioningId === r.id}
                             onClick={() => void runAction(r.id, () => declineDocumentRequest(authFetch, r.id), 'Failed to decline request')}
-                            className='text-red-600 hover:text-red-800 disabled:opacity-50'
+                            className='rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50'
                           >
                             Decline
                           </button>
-                        </>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -130,6 +128,7 @@ export default function DocumentRequests() {
                   </div>
                 )
               }
+              </div>
             </div>
           )
         }

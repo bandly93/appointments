@@ -98,23 +98,23 @@ export default function BookingRequests() {
           ? <div className='py-10 text-center text-gray-500'>Loading....</div>
           : (
             <div className='overflow-x-auto rounded-lg border border-gray-200 shadow-sm'>
-              <div className='grid grid-cols-[1fr_1fr_1.2fr_170px_200px] bg-gray-50'>
-                <div className='px-4 py-3 text-sm font-semibold text-gray-700'>Patient</div>
-                <div className='px-4 py-3 text-sm font-semibold text-gray-700'>Provider</div>
-                <div className='px-4 py-3 text-sm font-semibold text-gray-700'>When</div>
-                <div className='px-4 py-3 text-sm font-semibold text-gray-700'>Status</div>
-                <div className='px-4 py-3 text-sm font-semibold text-gray-700'></div>
+              <div className='grid grid-cols-[1.1fr_1fr_1.2fr_280px] bg-gray-50'>
+                <div className='px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500'>Patient</div>
+                <div className='px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500'>Provider</div>
+                <div className='px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500'>When</div>
+                <div className='px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500'>Status</div>
               </div>
+              <div className='divide-y divide-gray-200'>
               {requests.length !== 0
                 ? requests.map((r) => (
-                  <div key={r.id} className='grid grid-cols-[1fr_1fr_1.2fr_170px_200px] border-t border-gray-200 items-center'>
-                    <div className='px-4 py-3 text-sm text-gray-900'>
+                  <div key={r.id} className='grid grid-cols-[1.1fr_1fr_1.2fr_280px] items-start hover:bg-gray-50/70 transition-colors'>
+                    <div className='px-4 py-3.5 text-sm text-gray-900'>
                       {r.patient.name}
                       <div className='text-xs text-gray-500'>{r.patient.email}</div>
                       {r.patient.phone && <div className='text-xs text-gray-500'>{r.patient.phone}</div>}
                     </div>
-                    <div className='px-4 py-3 text-sm text-gray-700'>{r.provider.displayName ?? 'Provider'}</div>
-                    <div className='px-4 py-3 text-sm text-gray-700'>
+                    <div className='px-4 py-3.5 text-sm text-gray-700'>{r.provider.displayName ?? 'Provider'}</div>
+                    <div className='px-4 py-3.5 text-sm text-gray-700'>
                       {new Date(r.startsAt).toLocaleString(undefined, {
                         weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit',
                       })}
@@ -124,39 +124,41 @@ export default function BookingRequests() {
                         </div>
                       )}
                     </div>
-                    <div className='px-4 py-3 text-sm'>
+                    <div className='px-4 py-3.5 text-sm flex flex-col items-start gap-2'>
                       <StatusBadge status={r.status} />
-                    </div>
-                    <div className='px-4 py-3 text-sm flex items-center gap-2'>
-                      {canDecide(r) && (
-                        <>
-                          <button
-                            type='button'
-                            disabled={actioningId === r.id}
-                            onClick={() => void runAction(r.id, () => approveBookingRequest(authFetch, r.id), 'Failed to approve request')}
-                            className='rounded-md bg-green-600 px-3 py-1.5 text-sm font-medium text-white shadow-sm hover:bg-green-500 disabled:opacity-50'
-                          >
-                            Approve
-                          </button>
-                          <button
-                            type='button'
-                            disabled={actioningId === r.id}
-                            onClick={() => void runAction(r.id, () => rejectBookingRequest(authFetch, r.id), 'Failed to decline request')}
-                            className='rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50'
-                          >
-                            Decline
-                          </button>
-                        </>
-                      )}
-                      {canDelete && (
-                        <button
-                          type='button'
-                          disabled={actioningId === r.id}
-                          onClick={() => handleDelete(r)}
-                          className='text-sm text-red-600 hover:text-red-800 disabled:opacity-50'
-                        >
-                          Delete
-                        </button>
+                      {(canDecide(r) || canDelete) && (
+                        <div className='flex flex-wrap items-center gap-2'>
+                          {canDecide(r) && (
+                            <>
+                              <button
+                                type='button'
+                                disabled={actioningId === r.id}
+                                onClick={() => void runAction(r.id, () => approveBookingRequest(authFetch, r.id), 'Failed to approve request')}
+                                className='rounded-md bg-green-600 px-3 py-1.5 text-sm font-medium text-white shadow-sm hover:bg-green-500 disabled:opacity-50'
+                              >
+                                Approve
+                              </button>
+                              <button
+                                type='button'
+                                disabled={actioningId === r.id}
+                                onClick={() => void runAction(r.id, () => rejectBookingRequest(authFetch, r.id), 'Failed to decline request')}
+                                className='rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50'
+                              >
+                                Decline
+                              </button>
+                            </>
+                          )}
+                          {canDelete && (
+                            <button
+                              type='button'
+                              disabled={actioningId === r.id}
+                              onClick={() => handleDelete(r)}
+                              className='text-sm text-red-600 hover:text-red-800 disabled:opacity-50'
+                            >
+                              Delete
+                            </button>
+                          )}
+                        </div>
                       )}
                     </div>
                   </div>
@@ -167,6 +169,7 @@ export default function BookingRequests() {
                   </div>
                 )
               }
+              </div>
             </div>
           )
         }
