@@ -6,12 +6,14 @@ import {
   insertDocumentRequest,
   findDocumentRequestByIdWithSecrets,
   findDocumentRequestById,
+  findDocumentRequestFile,
   findDocumentRequests,
   updateDocumentRequest,
 } from "./documentRequests.repository.js";
 import { findPatientByEmail } from "../patients/patients.repository.js";
 import { generateAccessToken, generateVerificationCode, verifyToken } from "../lib/token.js";
 import { sendDocumentRequestEmail } from "../lib/mailer.js";
+import { deleteStoredFile } from "../lib/uploads.js";
 
 const VERIFICATION_TTL_MS = 10 * 60 * 1000;
 const MAX_VERIFICATION_ATTEMPTS = 5;
@@ -161,12 +163,34 @@ export function listDocumentRequests(status?: string) {
   return findDocumentRequests(status as DocumentRequestStatus | undefined);
 }
 
-export async function fulfillDocumentRequest(id: string) {
-  const existing = await findDocumentRequestById(id);
-  if (!existing) throw new Error("NOT_FOUND");
-  if (existing.status !== "PENDING") throw new Error("INVALID_STATUS");
+export type UploadedFile = {
+  originalName: string;
+  storageKey: string;
+  mimeType: string;
+  sizeBytes: number;
+};
 
-  return updateDocumentRequest(id, { status: "FULFILLED" });
+export async function fulfillDocumentRequest(id: string, file?: UploadedFile) {
+  const existing = await findDocumentRequestById(id);
+  if (!existing) {
+    if (file) deleteStoredFile(file.storageKey);
+    throw new Error("NOT_FOUND");
+  }
+  if (existing.status !== "PENDING") {
+    if (file) deleteStoredFile(file.storageKey);
+    throw new Error("INVALID_STATUS");
+  }
+
+  return updateDocumentRequest(id, {
+    status: "FULFILLED",
+    ...(file && {
+      fileOriginalName: file.originalName,
+      fileStorageKey: file.storageKey,
+      fileMimeType: file.mimeType,
+      fileSizeBytes: file.sizeBytes,
+      fileUploadedAt: new Date(),
+    }),
+  });
 }
 
 export async function declineDocumentRequest(id: string) {
@@ -175,4 +199,20 @@ export async function declineDocumentRequest(id: string) {
   if (existing.status !== "PENDING") throw new Error("INVALID_STATUS");
 
   return updateDocumentRequest(id, { status: "DECLINED" });
+}
+
+// Staff/admin can fetch the file for any fulfilled request.
+export async function getDocumentRequestFileForStaff(id: string) {
+  const record = await findDocumentRequestFile(id);
+  if (!record || !record.fileStorageKey) throw new Error("NOT_FOUND");
+  return { storageKey: record.fileStorageKey, mimeType: record.fileMimeType!, originalName: record.fileOriginalName! };
+}
+
+// Patients can only fetch it once verified via the same access-token flow
+// used for everything else about their own request.
+export async function getDocumentRequestFileForPatient(id: string, rawToken: string) {
+  await loadWithSecrets(id, rawToken);
+  const record = await findDocumentRequestFile(id);
+  if (!record || !record.fileStorageKey) throw new Error("NOT_FOUND");
+  return { storageKey: record.fileStorageKey, mimeType: record.fileMimeType!, originalName: record.fileOriginalName! };
 }

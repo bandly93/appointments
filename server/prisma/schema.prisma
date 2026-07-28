@@ -130,6 +130,15 @@ model DocumentRequest {
   verificationExpiresAt DateTime?
   verificationAttempts  Int       @default(0)
 
+  // The attached file, if staff fulfilled the request with an upload.
+  // fileStorageKey is a server-generated name on disk, never derived from
+  // client input, so it doubles as protection against path traversal.
+  fileOriginalName String?
+  fileStorageKey   String? @unique
+  fileMimeType     String?
+  fileSizeBytes    Int?
+  fileUploadedAt   DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

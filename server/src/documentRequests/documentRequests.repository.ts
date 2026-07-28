@@ -13,6 +13,13 @@ const documentRequestSelect = {
   status: true,
   createdAt: true,
   updatedAt: true,
+  // Original filename/size/type are safe to show (e.g. "results.pdf, 240 KB")
+  // but fileStorageKey is never selected here — it's the on-disk path
+  // component and only ever read server-side to stream a download.
+  fileOriginalName: true,
+  fileMimeType: true,
+  fileSizeBytes: true,
+  fileUploadedAt: true,
   patient: { select: { id: true, name: true, email: true, phone: true } },
 } satisfies Prisma.DocumentRequestSelect;
 
@@ -52,6 +59,15 @@ export function findDocumentRequestById(id: string) {
   return prisma.documentRequest.findUnique({ where: { id }, select: documentRequestSelect });
 }
 
+// Only for server-side file streaming — includes the on-disk storage key,
+// which must never be sent to a client.
+export function findDocumentRequestFile(id: string) {
+  return prisma.documentRequest.findUnique({
+    where: { id },
+    select: { status: true, fileStorageKey: true, fileOriginalName: true, fileMimeType: true },
+  });
+}
+
 export function findDocumentRequests(status?: DocumentRequestStatus) {
   return prisma.documentRequest.findMany({
     where: status ? { status } : undefined,
@@ -67,6 +83,11 @@ export function updateDocumentRequest(
     verificationCodeHash: string | null;
     verificationExpiresAt: Date | null;
     verificationAttempts: number;
+    fileOriginalName: string | null;
+    fileStorageKey: string | null;
+    fileMimeType: string | null;
+    fileSizeBytes: number | null;
+    fileUploadedAt: Date | null;
   }>,
   client: PrismaOrTx = prisma
 ) {

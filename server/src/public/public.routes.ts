@@ -13,6 +13,7 @@ import {
   deleteMyDocumentRequest,
   postVerifyDocumentRequest,
   postResendDocumentRequestCode,
+  getMyDocumentRequestFile,
 } from "./public.controller.js";
 
 const router = Router();
@@ -30,5 +31,6 @@ router.get("/document-requests/:id", getMyDocumentRequest);
 router.delete("/document-requests/:id", deleteMyDocumentRequest);
 router.post("/document-requests/:id/verify", postVerifyDocumentRequest);
 router.post("/document-requests/:id/resend-code", postResendDocumentRequestCode);
+router.get("/document-requests/:id/file", getMyDocumentRequestFile);
 
 export default router;

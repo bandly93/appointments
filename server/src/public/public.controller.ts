@@ -16,7 +16,9 @@ import {
   cancelDocumentRequestAsPatient,
   verifyDocumentRequestEmail,
   resendDocumentRequestCode,
+  getDocumentRequestFileForPatient,
 } from "../documentRequests/documentRequests.service.js";
+import { streamDocumentFile } from "../documentRequests/documentRequests.controller.js";
 
 export const getPublicSlots = getSlotsHandler;
 
@@ -228,6 +230,18 @@ export async function postResendDocumentRequestCode(req: Request, res: Response)
     }
     if (err instanceof Error && err.message === "EMAIL_SEND_FAILED") {
       return res.status(502).json({ error: "Failed to send the email. Please try again shortly." });
+    }
+    throw err;
+  }
+}
+
+export async function getMyDocumentRequestFile(req: Request, res: Response) {
+  try {
+    const file = await getDocumentRequestFileForPatient(String(req.params.id), getTokenFromQuery(req));
+    await streamDocumentFile(res, file);
+  } catch (err) {
+    if (err instanceof Error && err.message === "NOT_FOUND") {
+      return res.status(404).json({ error: "No file attached to this request" });
     }
     throw err;
   }

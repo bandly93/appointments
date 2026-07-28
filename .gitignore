@@ -6,5 +6,6 @@ dist-ssr
 server/.env
 server/dist
 server/src/generated
+server/uploads
 client/.env
 *.tsbuildinfo
