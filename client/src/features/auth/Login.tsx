@@ -2,6 +2,7 @@ import { useState, type SubmitEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from './AuthContext'
 import Logo from '../../shared/components/Logo'
+import PasswordInput from '../../shared/components/PasswordInput'
 
 export default function Login() {
   const { login } = useAuth()
@@ -60,15 +61,13 @@ export default function Login() {
             <label htmlFor='password' className='mb-1.5 block text-sm font-medium text-gray-700'>
               Password
             </label>
-            <input
+            <PasswordInput
               id='password'
-              type='password'
               required
               autoComplete='current-password'
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={setPassword}
               placeholder='••••••••'
-              className='w-full rounded-md border border-gray-300 px-3.5 py-2.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
             />
           </div>
 

@@ -3,6 +3,7 @@ import { useAuth } from '../../auth/AuthContext'
 import { getUsers, createUser } from '../api/adminApi'
 import { type User, type Role } from '../types/User'
 import Modal from '../../../shared/components/Modal'
+import PasswordInput from '../../../shared/components/PasswordInput'
 import Navbar from '../../layout/Navbar'
 
 export default function Users() {
@@ -145,15 +146,14 @@ function CreateUserModal({
           <label htmlFor='new-user-password' className='mb-1.5 block text-sm font-medium text-gray-700'>
             Password
           </label>
-          <input
+          <PasswordInput
             id='new-user-password'
-            type='password'
             required
             minLength={8}
             autoComplete='new-password'
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className='w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+            onChange={setPassword}
+            dense
           />
         </div>
 
