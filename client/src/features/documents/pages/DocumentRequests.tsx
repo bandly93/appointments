@@ -1,12 +1,23 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../../auth/AuthContext'
-import { getDocumentRequests, fulfillDocumentRequest, declineDocumentRequest } from '../api/documentRequestsApi'
+import {
+  getDocumentRequests,
+  fulfillDocumentRequest,
+  declineDocumentRequest,
+  downloadDocumentRequestFile,
+} from '../api/documentRequestsApi'
 import { type MyDocumentRequest, type DocumentRequestStatus } from '../types/DocumentRequest'
 import { documentRequestEvents, DOCUMENT_REQUESTS_CHANGED } from '../events'
 import StatusBadge, { STATUS_LABELS } from '../components/StatusBadge'
 import Navbar from '../../layout/Navbar'
 
 const STATUSES: DocumentRequestStatus[] = ['PENDING', 'UNVERIFIED', 'FULFILLED', 'DECLINED', 'CANCELLED', 'EXPIRED']
+
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
 
 export default function DocumentRequests() {
   const { authFetch } = useAuth()
@@ -15,6 +26,8 @@ export default function DocumentRequests() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [actioningId, setActioningId] = useState<string | null>(null)
+  const [pendingFiles, setPendingFiles] = useState<Record<string, File>>({})
+  const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({})
 
   const loadRequests = async () => {
     setLoading(true)
@@ -39,11 +52,24 @@ export default function DocumentRequests() {
     try {
       await action()
       setRequests((current) => current.filter((r) => r.id !== id))
+      setPendingFiles((current) => {
+        const { [id]: _removed, ...rest } = current
+        return rest
+      })
       documentRequestEvents.publish(DOCUMENT_REQUESTS_CHANGED, { id })
     } catch (err) {
       setError(err instanceof Error ? err.message : failureMessage)
     } finally {
       setActioningId(null)
+    }
+  }
+
+  async function handleDownload(r: MyDocumentRequest) {
+    setError(null)
+    try {
+      await downloadDocumentRequestFile(authFetch, r.id, r.fileOriginalName ?? 'document')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to download file')
     }
   }
 
@@ -75,7 +101,7 @@ export default function DocumentRequests() {
           ? <div className='py-10 text-center text-gray-500'>Loading....</div>
           : (
             <div className='overflow-x-auto rounded-lg border border-gray-200 shadow-sm'>
-              <div className='grid grid-cols-[1.1fr_1fr_1.3fr_260px] bg-gray-50'>
+              <div className='grid grid-cols-[1.1fr_1fr_1.1fr_320px] bg-gray-50'>
                 <div className='px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500'>Patient</div>
                 <div className='px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500'>Document</div>
                 <div className='px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500'>Message</div>
@@ -84,7 +110,7 @@ export default function DocumentRequests() {
               <div className='divide-y divide-gray-200'>
               {requests.length !== 0
                 ? requests.map((r) => (
-                  <div key={r.id} className='grid grid-cols-[1.1fr_1fr_1.3fr_260px] items-start hover:bg-gray-50/70 transition-colors'>
+                  <div key={r.id} className='grid grid-cols-[1.1fr_1fr_1.1fr_320px] items-start hover:bg-gray-50/70 transition-colors'>
                     <div className='px-4 py-3.5 text-sm text-gray-900'>
                       {r.patient.name}
                       <div className='text-xs text-gray-500'>{r.patient.email}</div>
@@ -99,25 +125,78 @@ export default function DocumentRequests() {
                     </div>
                     <div className='px-4 py-3.5 text-sm flex flex-col items-start gap-2'>
                       <StatusBadge status={r.status} />
+
                       {r.status === 'PENDING' && (
-                        <div className='flex flex-wrap items-center gap-2'>
-                          <button
-                            type='button'
-                            disabled={actioningId === r.id}
-                            onClick={() => void runAction(r.id, () => fulfillDocumentRequest(authFetch, r.id), 'Failed to fulfill request')}
-                            className='rounded-md bg-green-600 px-3 py-1.5 text-sm font-medium text-white shadow-sm hover:bg-green-500 disabled:opacity-50'
-                          >
-                            Fulfill
-                          </button>
-                          <button
-                            type='button'
-                            disabled={actioningId === r.id}
-                            onClick={() => void runAction(r.id, () => declineDocumentRequest(authFetch, r.id), 'Failed to decline request')}
-                            className='rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50'
-                          >
-                            Decline
-                          </button>
+                        <div className='flex flex-col gap-2 w-full'>
+                          <div className='flex items-center gap-2'>
+                            <input
+                              ref={(el) => { fileInputRefs.current[r.id] = el }}
+                              type='file'
+                              accept='.pdf,.png,.jpg,.jpeg,.doc,.docx'
+                              className='hidden'
+                              onChange={(e) => {
+                                const file = e.target.files?.[0]
+                                if (file) setPendingFiles((current) => ({ ...current, [r.id]: file }))
+                              }}
+                            />
+                            <button
+                              type='button'
+                              onClick={() => fileInputRefs.current[r.id]?.click()}
+                              className='rounded-md border border-gray-300 bg-white px-2.5 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50'
+                            >
+                              {pendingFiles[r.id] ? 'Change file' : 'Attach file'}
+                            </button>
+                            {pendingFiles[r.id] && (
+                              <span className='text-xs text-gray-500 truncate max-w-[140px]' title={pendingFiles[r.id].name}>
+                                {pendingFiles[r.id].name}
+                              </span>
+                            )}
+                          </div>
+                          <div className='flex flex-wrap items-center gap-2'>
+                            <button
+                              type='button'
+                              disabled={actioningId === r.id}
+                              onClick={() => void runAction(
+                                r.id,
+                                () => fulfillDocumentRequest(authFetch, r.id, pendingFiles[r.id]),
+                                'Failed to fulfill request',
+                              )}
+                              className='rounded-md bg-green-600 px-3 py-1.5 text-sm font-medium text-white shadow-sm hover:bg-green-500 disabled:opacity-50'
+                            >
+                              Fulfill
+                            </button>
+                            <button
+                              type='button'
+                              disabled={actioningId === r.id}
+                              onClick={() => void runAction(r.id, () => declineDocumentRequest(authFetch, r.id), 'Failed to decline request')}
+                              className='rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50'
+                            >
+                              Decline
+                            </button>
+                          </div>
                         </div>
+                      )}
+
+                      {r.status === 'FULFILLED' && r.fileOriginalName && (
+                        <button
+                          type='button'
+                          onClick={() => void handleDownload(r)}
+                          className='inline-flex items-center gap-1.5 text-sm font-medium text-blue-600 hover:text-blue-800'
+                        >
+                          <svg viewBox='0 0 20 20' fill='none' className='h-4 w-4 shrink-0'>
+                            <path
+                              d='M10 3v9m0 0-3.5-3.5M10 12l3.5-3.5M4 14.5v.5a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-.5'
+                              stroke='currentColor'
+                              strokeWidth='1.5'
+                              strokeLinecap='round'
+                              strokeLinejoin='round'
+                            />
+                          </svg>
+                          <span className='truncate max-w-[160px]'>{r.fileOriginalName}</span>
+                          {r.fileSizeBytes !== null && (
+                            <span className='text-gray-400 font-normal'>({formatFileSize(r.fileSizeBytes)})</span>
+                          )}
+                        </button>
                       )}
                     </div>
                   </div>

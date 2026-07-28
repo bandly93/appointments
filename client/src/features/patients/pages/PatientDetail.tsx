@@ -224,7 +224,12 @@ export default function PatientDetail() {
           {patient.documentRequests.length !== 0
             ? patient.documentRequests.map((d) => (
               <div key={d.id} className='grid grid-cols-[1fr_1.6fr_150px_150px] border-t border-gray-200'>
-                <div className='px-4 py-3 text-sm text-gray-900'>{d.documentType}</div>
+                <div className='px-4 py-3 text-sm text-gray-900'>
+                  {d.documentType}
+                  {d.fileOriginalName && (
+                    <span className='ml-1.5 text-xs text-gray-400' title={d.fileOriginalName}>📎</span>
+                  )}
+                </div>
                 <div className='px-4 py-3 text-sm text-gray-700'>
                   {d.message
                     ? <span className='italic truncate block' title={d.message}>“{d.message}”</span>

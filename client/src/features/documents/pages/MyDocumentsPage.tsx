@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
-import { getMyDocumentRequest, cancelMyDocumentRequest, verifyDocumentRequest } from '../api/publicDocumentsApi'
+import { getMyDocumentRequest, cancelMyDocumentRequest, verifyDocumentRequest, getMyDocumentFileUrl } from '../api/publicDocumentsApi'
 import { type MyDocumentRequest } from '../types/DocumentRequest'
 import VerifyDocumentCodeForm from '../components/VerifyDocumentCodeForm'
 import PublicHeader from '../../../shared/components/PublicHeader'
@@ -110,6 +110,24 @@ export default function MyDocumentsPage() {
           <div className='text-sm text-gray-700 mb-1'>{request.documentType}</div>
           {request.message && <div className='text-sm text-gray-500 italic mb-1'>“{request.message}”</div>}
           <div className='text-sm font-medium text-gray-900'>Status: {STATUS_LABELS[request.status]}</div>
+
+          {request.status === 'FULFILLED' && request.fileOriginalName && (
+            <a
+              href={getMyDocumentFileUrl(request.id, token)}
+              className='mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-blue-600 hover:text-blue-800'
+            >
+              <svg viewBox='0 0 20 20' fill='none' className='h-4 w-4 shrink-0'>
+                <path
+                  d='M10 3v9m0 0-3.5-3.5M10 12l3.5-3.5M4 14.5v.5a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-.5'
+                  stroke='currentColor'
+                  strokeWidth='1.5'
+                  strokeLinecap='round'
+                  strokeLinejoin='round'
+                />
+              </svg>
+              Download {request.fileOriginalName}
+            </a>
+          )}
         </div>
 
         {error && (

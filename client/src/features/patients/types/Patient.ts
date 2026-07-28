@@ -27,6 +27,7 @@ export type PatientDocumentRequest = {
   message: string | null
   status: DocumentRequestStatus
   createdAt: string
+  fileOriginalName: string | null
 }
 
 export type PatientDetail = Patient & {

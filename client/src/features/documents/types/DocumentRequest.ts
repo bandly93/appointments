@@ -8,6 +8,10 @@ export type MyDocumentRequest = {
   status: DocumentRequestStatus
   createdAt: string
   updatedAt: string
+  fileOriginalName: string | null
+  fileMimeType: string | null
+  fileSizeBytes: number | null
+  fileUploadedAt: string | null
   patient: { id: string; name: string; email: string; phone: string | null }
 }
 

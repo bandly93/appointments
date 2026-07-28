@@ -58,6 +58,12 @@ export async function resendDocumentRequestCode(id: string, token: string): Prom
   }
 }
 
+// Token travels as a query param here (not an auth header), so a plain link
+// works — no need to fetch-as-blob like the staff-side download does.
+export function getMyDocumentFileUrl(id: string, token: string): string {
+  return `${API_URL}/api/public/document-requests/${id}/file?token=${encodeURIComponent(token)}`
+}
+
 export async function cancelMyDocumentRequest(id: string, token: string): Promise<MyDocumentRequest> {
   const res = await fetch(`${API_URL}/api/public/document-requests/${id}?token=${encodeURIComponent(token)}`, {
     method: 'DELETE',
