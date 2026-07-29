@@ -4,6 +4,7 @@ import { getMyBooking, updateMyBooking, cancelMyBooking, verifyBookingRequest } 
 import { type MyBookingRequest } from '../types/Booking'
 import VerifyCodeForm from '../components/VerifyCodeForm'
 import PublicHeader from '../../../shared/components/PublicHeader'
+import MyDocumentsPanel from '../../patientDocuments/components/MyDocumentsPanel'
 
 const STATUS_LABELS: Record<MyBookingRequest['status'], string> = {
   UNVERIFIED: 'Awaiting email confirmation',
@@ -154,6 +155,10 @@ export default function MyBookingPage() {
           <p className='text-sm text-gray-500'>
             This request expired before the email was confirmed. Please submit a new booking request.
           </p>
+        )}
+
+        {booking.status !== 'EXPIRED' && (
+          <MyDocumentsPanel bookingRequestId={booking.id} token={token} />
         )}
 
         {(booking.status === 'UNVERIFIED' || booking.status === 'PENDING')
