@@ -58,6 +58,7 @@ model User {
   availabilityRules AvailabilityRule[]
   bookingRequests   BookingRequest[]
   appointments      Appointment[]
+  uploadedDocuments PatientDocument[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -106,12 +107,48 @@ model Patient {
   dateOfBirth String?
   address     String?
 
-  bookingRequests   BookingRequest[]
-  appointments      Appointment[]
-  documentRequests  DocumentRequest[]
+  bookingRequests  BookingRequest[]
+  appointments     Appointment[]
+  documentRequests DocumentRequest[]
+  documents        PatientDocument[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// A standalone file attached directly to a patient's record — e.g. a
+// photographed ID or insurance card — independent of the request/fulfill
+// lifecycle in DocumentRequest. Staff/provider can upload at any time;
+// patients can upload their own via their booking access-token link.
+model PatientDocument {
+  id        String  @id @default(cuid())
+  patientId String
+  patient   Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  documentType String
+
+  // Who added it. uploadedByUserId is null when the patient uploaded it
+  // themselves; uploadedByRole records the actor's role at upload time
+  // ("STAFF" | "PROVIDER" | "PATIENT") for display without joining User
+  // for the patient-uploaded case.
+  uploadedByUserId String?
+  uploadedByUser   User?   @relation(fields: [uploadedByUserId], references: [id], onDelete: SetNull)
+  uploadedByRole   String
+
+  // Hides the document from the patient's own view when a staff/provider
+  // upload isn't meant to be patient-facing. Always true for patient
+  // self-uploads (hiding a patient's own upload from themselves makes no
+  // sense).
+  visibleToPatient Boolean @default(true)
+
+  fileOriginalName String
+  fileStorageKey   String @unique
+  fileMimeType     String
+  fileSizeBytes    Int
+
+  createdAt DateTime @default(now())
+
+  @@index([patientId])
 }
 
 model DocumentRequest {
@@ -134,7 +171,7 @@ model DocumentRequest {
   // fileStorageKey is a server-generated name on disk, never derived from
   // client input, so it doubles as protection against path traversal.
   fileOriginalName String?
-  fileStorageKey   String? @unique
+  fileStorageKey   String?   @unique
   fileMimeType     String?
   fileSizeBytes    Int?
   fileUploadedAt   DateTime?

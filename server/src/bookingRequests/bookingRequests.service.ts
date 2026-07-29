@@ -160,6 +160,13 @@ export async function getBookingRequestForPatient(id: string, rawToken: string) 
   return toSafeBookingRequest(await loadWithSecrets(id, rawToken));
 }
 
+// For features that need to act on "the patient behind this booking link"
+// (e.g. patient document uploads) without needing the rest of the booking.
+export async function getPatientIdForBookingRequest(id: string, rawToken: string): Promise<string> {
+  const bookingRequest = await loadWithSecrets(id, rawToken);
+  return bookingRequest.patientId;
+}
+
 const patientUpdateSchema = z.object({
   notes: z.string().trim().max(1000).optional(),
 });

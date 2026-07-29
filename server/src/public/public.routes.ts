@@ -15,6 +15,12 @@ import {
   postResendDocumentRequestCode,
   getMyDocumentRequestFile,
 } from "./public.controller.js";
+import {
+  getMyPatientDocuments,
+  postMyPatientDocument,
+  getMyPatientDocumentFile,
+} from "../patientDocuments/patientDocuments.controller.js";
+import { documentUpload, handleUploadErrors } from "../lib/uploads.js";
 
 const router = Router();
 
@@ -32,5 +38,16 @@ router.delete("/document-requests/:id", deleteMyDocumentRequest);
 router.post("/document-requests/:id/verify", postVerifyDocumentRequest);
 router.post("/document-requests/:id/resend-code", postResendDocumentRequestCode);
 router.get("/document-requests/:id/file", getMyDocumentRequestFile);
+
+// Patient document uploads, scoped to the patient behind a booking link —
+// proven via the same access token as the rest of that booking's endpoints.
+router.get("/booking-requests/:id/documents", getMyPatientDocuments);
+router.post(
+  "/booking-requests/:id/documents",
+  documentUpload.single("file"),
+  handleUploadErrors,
+  postMyPatientDocument
+);
+router.get("/booking-requests/:id/documents/:docId/file", getMyPatientDocumentFile);
 
 export default router;

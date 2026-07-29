@@ -3,6 +3,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import multer from "multer";
+import type { NextFunction, Request, Response } from "express";
 
 export const UPLOADS_DIR = path.resolve(process.cwd(), "uploads", "documents");
 fs.mkdirSync(UPLOADS_DIR, { recursive: true });
@@ -62,4 +63,16 @@ export function deleteStoredFile(storageKey: string): void {
 // Strips characters that could break or inject into a Content-Disposition header.
 export function sanitizeFilenameForHeader(name: string): string {
   return name.replace(/[\r\n"]/g, "").slice(0, 200) || "document";
+}
+
+// Shared error middleware for routes using documentUpload.single(...) — must
+// be registered directly after the upload middleware in the route chain.
+export function handleUploadErrors(err: unknown, _req: Request, res: Response, next: NextFunction) {
+  if (err instanceof UnsupportedFileTypeError) {
+    return res.status(400).json({ error: "Unsupported file type. Allowed: PDF, JPG, PNG, DOC, DOCX." });
+  }
+  if (err instanceof multer.MulterError && err.code === "LIMIT_FILE_SIZE") {
+    return res.status(400).json({ error: `File too large. Max size is ${MAX_UPLOAD_BYTES / (1024 * 1024)}MB.` });
+  }
+  next(err);
 }
