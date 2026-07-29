@@ -4,6 +4,7 @@ import {
   insertPatientDocument,
   findPatientDocuments,
   findPatientDocumentFile,
+  countPatientUploadedDocuments,
 } from "./patientDocuments.repository.js";
 import { findPatientById } from "../patients/patients.repository.js";
 import { getPatientIdForBookingRequest } from "../bookingRequests/bookingRequests.service.js";
@@ -15,6 +16,11 @@ export type UploadedFile = {
   mimeType: string;
   sizeBytes: number;
 };
+
+// Staff/provider uploads are trusted and uncapped. Patient self-uploads have
+// no request/approval step gating them (unlike DocumentRequest), so without a
+// cap a valid booking link could be used to fill disk indefinitely.
+const MAX_PATIENT_SELF_UPLOADS = 20;
 
 const documentTypeSchema = z.string().trim().min(1).max(100);
 
@@ -72,6 +78,12 @@ export async function uploadPatientDocumentAsPatient(
   if (!parsed.success) {
     deleteStoredFile(file.storageKey);
     throw new Error("INVALID_INPUT");
+  }
+
+  const uploadedCount = await countPatientUploadedDocuments(patientId);
+  if (uploadedCount >= MAX_PATIENT_SELF_UPLOADS) {
+    deleteStoredFile(file.storageKey);
+    throw new Error("TOO_MANY_DOCUMENTS");
   }
 
   return insertPatientDocument({

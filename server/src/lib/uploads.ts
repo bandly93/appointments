@@ -5,6 +5,8 @@ import path from "node:path";
 import multer from "multer";
 import type { NextFunction, Request, Response } from "express";
 
+export type StoredFile = { storageKey: string; mimeType: string; originalName: string };
+
 export const UPLOADS_DIR = path.resolve(process.cwd(), "uploads", "documents");
 fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 
@@ -63,6 +65,21 @@ export function deleteStoredFile(storageKey: string): void {
 // Strips characters that could break or inject into a Content-Disposition header.
 export function sanitizeFilenameForHeader(name: string): string {
   return name.replace(/[\r\n"]/g, "").slice(0, 200) || "document";
+}
+
+// Shared by every download route. createReadStream emits its 'error' event
+// asynchronously (e.g. the DB row survived but the file on disk didn't) —
+// with no listener that event is uncaught and crashes the process, so we
+// always attach one and fall back to a 404 instead.
+export function streamStoredFile(res: Response, file: StoredFile): void {
+  res.setHeader("Content-Type", file.mimeType);
+  res.setHeader("Content-Disposition", `attachment; filename="${sanitizeFilenameForHeader(file.originalName)}"`);
+  const stream = fs.createReadStream(storagePathFor(file.storageKey));
+  stream.on("error", () => {
+    if (res.headersSent) return res.end();
+    res.status(404).json({ error: "File not found" });
+  });
+  stream.pipe(res);
 }
 
 // Shared error middleware for routes using documentUpload.single(...) — must

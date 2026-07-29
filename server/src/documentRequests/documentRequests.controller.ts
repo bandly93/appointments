@@ -1,5 +1,4 @@
 // src/documentRequests/documentRequests.controller.ts
-import fs from "node:fs";
 import { Request, Response } from "express";
 import {
   listDocumentRequests,
@@ -8,7 +7,7 @@ import {
   getDocumentRequestFileForStaff,
   type UploadedFile,
 } from "./documentRequests.service.js";
-import { storagePathFor, sanitizeFilenameForHeader } from "../lib/uploads.js";
+import { streamStoredFile, type StoredFile } from "../lib/uploads.js";
 
 export async function getDocumentRequests(req: Request, res: Response) {
   const status = typeof req.query.status === "string" ? req.query.status : undefined;
@@ -40,17 +39,8 @@ export async function postFulfill(req: Request, res: Response) {
   }
 }
 
-export async function streamDocumentFile(
-  res: Response,
-  file: { storageKey: string; mimeType: string; originalName: string }
-) {
-  const filePath = storagePathFor(file.storageKey);
-  res.setHeader("Content-Type", file.mimeType);
-  res.setHeader(
-    "Content-Disposition",
-    `attachment; filename="${sanitizeFilenameForHeader(file.originalName)}"`
-  );
-  fs.createReadStream(filePath).pipe(res);
+export async function streamDocumentFile(res: Response, file: StoredFile) {
+  streamStoredFile(res, file);
 }
 
 export async function getDocumentRequestFile(req: Request, res: Response) {
