@@ -55,24 +55,38 @@ export default function Patients() {
           ? <div className='py-10 text-center text-gray-500'>Loading....</div>
           : (
             <div className='overflow-x-auto rounded-lg border border-gray-200 shadow-sm'>
-              <div className='grid grid-cols-[1.2fr_1.4fr_1fr_140px] bg-gray-50'>
-                <div className='px-4 py-3 text-sm font-semibold text-gray-700'>Name</div>
-                <div className='px-4 py-3 text-sm font-semibold text-gray-700'>Email</div>
-                <div className='px-4 py-3 text-sm font-semibold text-gray-700'>Phone</div>
-                <div className='px-4 py-3 text-sm font-semibold text-gray-700'>Date of birth</div>
+              <div className='grid grid-cols-[1.2fr_1.4fr_1fr_140px_28px] bg-gray-50'>
+                <div className='px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500'>Name</div>
+                <div className='px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500'>Email</div>
+                <div className='px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500'>Phone</div>
+                <div className='px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500'>Date of birth</div>
+                <div />
               </div>
+              <div className='divide-y divide-gray-200'>
               {patients.length !== 0
                 ? patients.map((p) => (
                   <button
                     key={p.id}
                     type='button'
                     onClick={() => navigate(`/patients/${p.id}`)}
-                    className='grid grid-cols-[1.2fr_1.4fr_1fr_140px] w-full border-t border-gray-200 text-left hover:bg-gray-50'
+                    title='View patient details'
+                    className='group grid grid-cols-[1.2fr_1.4fr_1fr_140px_28px] w-full items-center text-left hover:bg-gray-50 transition-colors'
                   >
-                    <div className='px-4 py-3 text-sm font-medium text-gray-900'>{p.name}</div>
-                    <div className='px-4 py-3 text-sm text-gray-700'>{p.email}</div>
-                    <div className='px-4 py-3 text-sm text-gray-700'>{p.phone ?? '—'}</div>
-                    <div className='px-4 py-3 text-sm text-gray-700'>{formatDob(p.dateOfBirth)}</div>
+                    <div className='px-4 py-3.5 text-sm font-medium text-gray-900'>{p.name}</div>
+                    <div className='px-4 py-3.5 text-sm text-gray-700'>{p.email}</div>
+                    <div className='px-4 py-3.5 text-sm text-gray-700'>{p.phone ?? '—'}</div>
+                    <div className='px-4 py-3.5 text-sm text-gray-700'>{formatDob(p.dateOfBirth)}</div>
+                    <div className='pr-3 text-gray-300 group-hover:text-gray-500 transition-colors'>
+                      <svg viewBox='0 0 20 20' fill='none' className='h-4 w-4'>
+                        <path
+                          d='M7.5 4.5 13 10l-5.5 5.5'
+                          stroke='currentColor'
+                          strokeWidth='1.5'
+                          strokeLinecap='round'
+                          strokeLinejoin='round'
+                        />
+                      </svg>
+                    </div>
                   </button>
                 ))
                 : (
@@ -81,6 +95,7 @@ export default function Patients() {
                   </div>
                 )
               }
+              </div>
             </div>
           )
         }
