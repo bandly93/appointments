@@ -6,6 +6,7 @@ import { type PatientDetail as PatientDetailType } from '../types/Patient'
 import Navbar from '../../layout/Navbar'
 import DocumentStatusBadge from '../../documents/components/StatusBadge'
 import { documentRequestEvents, DOCUMENT_REQUESTS_CHANGED } from '../../documents/events'
+import PatientDocumentsPanel from '../../patientDocuments/components/PatientDocumentsPanel'
 
 function formatDob(dateOfBirth: string | null): string {
   if (!dateOfBirth) return '—'
@@ -247,6 +248,8 @@ export default function PatientDetail() {
             : <div className='px-4 py-10 text-center text-gray-500'>No document requests yet</div>
           }
         </div>
+
+        {patientId && <PatientDocumentsPanel patientId={patientId} />}
       </div>
     </div>
   )
