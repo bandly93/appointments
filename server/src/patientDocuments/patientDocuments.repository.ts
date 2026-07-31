@@ -31,10 +31,6 @@ export function insertPatientDocument(data: InsertData) {
   return prisma.patientDocument.create({ data, select: patientDocumentSelect });
 }
 
-export function countPatientUploadedDocuments(patientId: string) {
-  return prisma.patientDocument.count({ where: { patientId, uploadedByRole: "PATIENT" } });
-}
-
 export function findPatientDocuments(patientId: string, onlyVisibleToPatient: boolean) {
   return prisma.patientDocument.findMany({
     where: { patientId, ...(onlyVisibleToPatient ? { visibleToPatient: true } : {}) },

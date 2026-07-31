@@ -2,7 +2,6 @@
 import { Request, Response } from "express";
 import {
   uploadPatientDocumentAsStaff,
-  uploadPatientDocumentAsPatient,
   listPatientDocumentsForStaff,
   listPatientDocumentsForPatient,
   getPatientDocumentFileForStaff,
@@ -74,32 +73,6 @@ export async function getMyPatientDocuments(req: Request, res: Response) {
   } catch (err) {
     if (err instanceof Error && err.message === "NOT_FOUND") {
       return res.status(404).json({ error: "Booking request not found" });
-    }
-    throw err;
-  }
-}
-
-export async function postMyPatientDocument(req: Request, res: Response) {
-  const file = fileFromRequest(req);
-  if (!file) return res.status(400).json({ error: "Choose a file to upload" });
-
-  try {
-    const document = await uploadPatientDocumentAsPatient(
-      String(req.params.id),
-      getTokenFromQuery(req),
-      req.body.documentType,
-      file
-    );
-    res.status(201).json({ success: true, document });
-  } catch (err) {
-    if (err instanceof Error && err.message === "NOT_FOUND") {
-      return res.status(404).json({ error: "Booking request not found" });
-    }
-    if (err instanceof Error && err.message === "INVALID_INPUT") {
-      return res.status(400).json({ error: "Enter a document type" });
-    }
-    if (err instanceof Error && err.message === "TOO_MANY_DOCUMENTS") {
-      return res.status(429).json({ error: "You've reached the upload limit for this record. Contact our office if you need to add more." });
     }
     throw err;
   }
