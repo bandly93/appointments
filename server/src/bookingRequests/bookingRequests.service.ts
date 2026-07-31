@@ -18,15 +18,15 @@ import { findActiveProviderById } from "../availability/availability.repository.
 import { findMatchingBookableSlot } from "../availability/availability.service.js";
 import { insertAppointment } from "../appointments/appointments.repository.js";
 import { generateAccessToken, generateVerificationCode, verifyToken } from "../lib/token.js";
-import { sendVerificationEmail } from "../lib/mailer.js";
+import { sendVerificationEmail, sendBookingConfirmedEmail } from "../lib/mailer.js";
 
 const VERIFICATION_TTL_MS = 10 * 60 * 1000;
 const MAX_VERIFICATION_ATTEMPTS = 5;
 const MAX_ACTIVE_REQUESTS_PER_PATIENT = 3;
 const CLIENT_URL = process.env.CLIENT_URL ?? "http://localhost:5173";
 
-function buildMyBookingLink(id: string, rawToken: string, code: string): string {
-  return `${CLIENT_URL}/my-booking/${id}?token=${rawToken}&code=${code}`;
+function buildMyBookingLink(id: string, rawToken: string, code?: string): string {
+  return `${CLIENT_URL}/my-booking/${id}?token=${rawToken}${code ? `&code=${code}` : ""}`;
 }
 
 // A request is only a confirmed hold once the patient's email is verified;
@@ -276,8 +276,14 @@ export async function approveBookingRequest(id: string, actor: Actor) {
   assertActorCanDecide(existing, actor);
   if (existing.status !== "PENDING") throw new Error("INVALID_STATUS");
 
-  return prisma.$transaction(async (tx) => {
-    await updateBookingRequest(id, { status: "APPROVED" }, tx);
+  // Rotate the access token: the confirmation link below is the one worth
+  // keeping now that the booking is a real appointment, and only the latest
+  // issued token for a booking is ever valid (the raw value is never
+  // persisted, so a stable link would mean holding onto it in plaintext).
+  const { rawToken, tokenHash } = generateAccessToken();
+
+  const appointment = await prisma.$transaction(async (tx) => {
+    await updateBookingRequest(id, { status: "APPROVED", accessTokenHash: tokenHash }, tx);
     return insertAppointment(
       {
         providerId: existing.providerId,
@@ -290,6 +296,20 @@ export async function approveBookingRequest(id: string, actor: Actor) {
       tx
     );
   });
+
+  // Same tradeoff as the initial booking email: a mail-provider hiccup
+  // shouldn't undo an already-approved appointment.
+  try {
+    await sendBookingConfirmedEmail(appointment.patient.email, {
+      providerName: appointment.provider.displayName ?? "your provider",
+      startsAt: appointment.startsAt,
+      link: buildMyBookingLink(id, rawToken),
+    });
+  } catch (err) {
+    console.error("Failed to send booking confirmation email", err);
+  }
+
+  return appointment;
 }
 
 export async function rejectBookingRequest(id: string, actor: Actor) {

@@ -24,4 +24,6 @@ export const env = {
   JWT_REFRESH_SECRET: jwtRefreshSecret,
   ACCESS_TOKEN_TTL: process.env.ACCESS_TOKEN_TTL ?? "15m",
   REFRESH_TOKEN_TTL: process.env.REFRESH_TOKEN_TTL ?? "7d",
+  CLINIC_PHONE: process.env.CLINIC_PHONE,
+  CLINIC_EMAIL: process.env.CLINIC_EMAIL,
 };

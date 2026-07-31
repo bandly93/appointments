@@ -79,6 +79,7 @@ export function updateBookingRequest(
   data: Partial<{
     notes: string;
     status: BookingStatus;
+    accessTokenHash: string;
     verificationCodeHash: string | null;
     verificationExpiresAt: Date | null;
     verificationAttempts: number;
