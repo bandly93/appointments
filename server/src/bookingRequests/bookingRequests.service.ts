@@ -16,7 +16,11 @@ import {
 import { findPatientByEmail, insertPatient, updatePatientContact } from "../patients/patients.repository.js";
 import { findActiveProviderById } from "../availability/availability.repository.js";
 import { findMatchingBookableSlot } from "../availability/availability.service.js";
-import { insertAppointment } from "../appointments/appointments.repository.js";
+import {
+  insertAppointment,
+  findAppointmentByBookingRequestId,
+  updateAppointment as updateAppointmentRecord,
+} from "../appointments/appointments.repository.js";
 import { generateAccessToken, verifyToken } from "../lib/token.js";
 import { sendVerificationEmail, sendRequestPendingEmail, sendBookingConfirmedEmail } from "../lib/mailer.js";
 
@@ -313,5 +317,14 @@ export async function removeBookingRequestAsStaff(id: string) {
   const existing = await findBookingRequestById(id);
   if (!existing) throw new Error("NOT_FOUND");
 
-  return deleteBookingRequest(id);
+  // A linked appointment can't just be orphaned (onDelete: SetNull) — it would
+  // survive as SCHEDULED with nothing left to block the slot, opening the door
+  // to a double-booking. Cancel it first, in the same transaction.
+  return prisma.$transaction(async (tx) => {
+    const appointment = await findAppointmentByBookingRequestId(id, tx);
+    if (appointment && appointment.status === "SCHEDULED") {
+      await updateAppointmentRecord(appointment.id, { status: "CANCELLED" }, tx);
+    }
+    return deleteBookingRequest(id, tx);
+  });
 }

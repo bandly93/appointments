@@ -84,6 +84,6 @@ export function updateBookingRequest(
   return client.bookingRequest.update({ where: { id }, data, select: bookingRequestSelect });
 }
 
-export function deleteBookingRequest(id: string) {
-  return prisma.bookingRequest.delete({ where: { id } });
+export function deleteBookingRequest(id: string, client: PrismaOrTx = prisma) {
+  return client.bookingRequest.delete({ where: { id } });
 }

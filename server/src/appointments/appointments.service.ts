@@ -46,6 +46,15 @@ export async function editAppointment(id: string, rawInput: unknown) {
   const parsed = updateAppointmentSchema.safeParse(rawInput);
   if (!parsed.success) throw new Error("INVALID_INPUT");
 
+  // Cancelling here must also free the slot, same as removeAppointment below —
+  // otherwise the booking request stays APPROVED and permanently blocks it.
+  if (parsed.data.status === "CANCELLED" && existing.bookingRequestId) {
+    return prisma.$transaction(async (tx) => {
+      await updateBookingRequest(existing.bookingRequestId!, { status: "CANCELLED" }, tx);
+      return updateAppointment(id, parsed.data, tx);
+    });
+  }
+
   return updateAppointment(id, parsed.data);
 }
 

@@ -55,11 +55,16 @@ export function findAppointmentById(id: string, client: PrismaOrTx = prisma) {
 
 export function updateAppointment(
   id: string,
-  data: Partial<{ notes: string; status: AppointmentStatus; startsAt: Date; endsAt: Date }>
+  data: Partial<{ notes: string; status: AppointmentStatus; startsAt: Date; endsAt: Date }>,
+  client: PrismaOrTx = prisma
 ) {
-  return prisma.appointment.update({ where: { id }, data, select: appointmentSelect });
+  return client.appointment.update({ where: { id }, data, select: appointmentSelect });
 }
 
 export function deleteAppointment(id: string, client: PrismaOrTx = prisma) {
   return client.appointment.delete({ where: { id } });
+}
+
+export function findAppointmentByBookingRequestId(bookingRequestId: string, client: PrismaOrTx = prisma) {
+  return client.appointment.findUnique({ where: { bookingRequestId }, select: appointmentSelect });
 }
