@@ -18,7 +18,7 @@ import { findActiveProviderById } from "../availability/availability.repository.
 import { findMatchingBookableSlot } from "../availability/availability.service.js";
 import { insertAppointment } from "../appointments/appointments.repository.js";
 import { generateAccessToken, verifyToken } from "../lib/token.js";
-import { sendVerificationEmail, sendBookingConfirmedEmail } from "../lib/mailer.js";
+import { sendVerificationEmail, sendRequestPendingEmail, sendBookingConfirmedEmail } from "../lib/mailer.js";
 
 const VERIFICATION_TTL_MS = 10 * 60 * 1000;
 const MAX_ACTIVE_REQUESTS_PER_PATIENT = 3;
@@ -194,7 +194,22 @@ export async function verifyBookingRequestEmail(id: string, rawToken: string) {
     throw new Error("REQUEST_EXPIRED");
   }
 
-  return updateBookingRequest(id, { status: "PENDING", verificationExpiresAt: null });
+  const updated = await updateBookingRequest(id, { status: "PENDING", verificationExpiresAt: null });
+
+  // Same tradeoff as elsewhere: a mail hiccup shouldn't undo an
+  // already-verified request — the patient is already looking at their
+  // status on-screen right now regardless of whether this email lands.
+  try {
+    await sendRequestPendingEmail(updated.patient.email, {
+      providerName: updated.provider.displayName ?? "your provider",
+      startsAt: updated.startsAt,
+      link: buildMyBookingLink(id, rawToken),
+    });
+  } catch (err) {
+    console.error("Failed to send pending-request email", err);
+  }
+
+  return updated;
 }
 
 // Re-sends the same link (the token never changes here) and refreshes the

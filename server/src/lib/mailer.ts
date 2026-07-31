@@ -106,6 +106,44 @@ function confirmationEmailHtml(
 </html>`.trim();
 }
 
+// Sent the moment email verification succeeds — a durable, easy-to-find link
+// distinct from the "confirm your request" email, since that one is about
+// the verification action rather than "here's where to check on this later."
+// Reuses the same (unrotated) token: the request's status hasn't changed
+// what the link is allowed to do yet.
+export async function sendRequestPendingEmail(
+  to: string,
+  details: { providerName: string; startsAt: Date; link: string }
+): Promise<void> {
+  const when = formatApptTime(details.startsAt);
+  const contactLine = buildContactLine();
+
+  const { error } = await resend.emails.send({
+    from: MAIL_FROM,
+    to,
+    subject: "Your appointment request is in review",
+    text: [
+      `Your request with ${details.providerName} for ${when} has been sent to the office for review.`,
+      `Check its status any time: ${details.link}`,
+      contactLine,
+    ]
+      .filter(Boolean)
+      .join("\n\n"),
+    html: confirmationEmailHtml(
+      "Request received",
+      `Requested with ${details.providerName} — we'll email you once it's reviewed.`,
+      when,
+      "Check status",
+      details.link,
+      contactLine
+    ),
+  });
+
+  if (error) {
+    throw new Error(`Failed to send pending-request email: ${error.message}`);
+  }
+}
+
 // Sent when staff approve a request — supersedes the earlier "confirm your
 // request" link with a fresh one, since the booking is now a real, kept
 // appointment the patient may refer back to at any point before it happens.
