@@ -5,7 +5,10 @@ import { env } from "../config/env.js";
 const resend = new Resend(process.env.RESEND_API_KEY);
 const MAIL_FROM = process.env.MAIL_FROM ?? "onboarding@resend.dev";
 
-function verificationEmailHtml(heading: string, body: string, buttonLabel: string, code: string, link: string): string {
+// `code` is optional: the booking flow proves email ownership with the link
+// alone (see bookingRequests.service.ts), while document requests still pair
+// the link with a manually-enterable code.
+function verificationEmailHtml(heading: string, body: string, buttonLabel: string, link: string, code?: string): string {
   return `
 <!doctype html>
 <html>
@@ -19,9 +22,12 @@ function verificationEmailHtml(heading: string, body: string, buttonLabel: strin
                 <h1 style="margin:0 0 8px;font-size:18px;color:#18181b;">${heading}</h1>
                 <p style="margin:0 0 24px;font-size:14px;color:#71717a;">${body}</p>
                 <a href="${link}" style="display:inline-block;padding:12px 24px;background-color:#2563eb;border-radius:6px;color:#ffffff;font-size:14px;font-weight:600;text-decoration:none;">${buttonLabel}</a>
-                <p style="margin:24px 0 8px;font-size:13px;color:#a1a1aa;">Or enter this code manually:</p>
+                ${code
+                  ? `<p style="margin:24px 0 8px;font-size:13px;color:#a1a1aa;">Or enter this code manually:</p>
                 <div style="display:inline-block;padding:16px 32px;background-color:#f4f4f5;border-radius:6px;font-size:32px;font-weight:700;letter-spacing:8px;color:#18181b;">${code}</div>
-                <p style="margin:24px 0 0;font-size:13px;color:#a1a1aa;">This code expires in 10 minutes. If you didn't request this, you can ignore this email.</p>
+                <p style="margin:24px 0 0;font-size:13px;color:#a1a1aa;">This code expires in 10 minutes. If you didn't request this, you can ignore this email.</p>`
+                  : `<p style="margin:24px 0 0;font-size:13px;color:#a1a1aa;">This link expires in 10 minutes. If you didn't request an appointment, you can safely ignore this email.</p>`
+                }
               </td>
             </tr>
           </table>
@@ -32,17 +38,16 @@ function verificationEmailHtml(heading: string, body: string, buttonLabel: strin
 </html>`.trim();
 }
 
-export async function sendVerificationEmail(to: string, code: string, link: string): Promise<void> {
+export async function sendVerificationEmail(to: string, link: string): Promise<void> {
   const { error } = await resend.emails.send({
     from: MAIL_FROM,
     to,
-    subject: "Your verification code",
-    text: `Confirm your booking: ${link}\n\nOr enter this code manually: ${code} (expires in 10 minutes)`,
+    subject: "Confirm your appointment request",
+    text: `Confirm your request: ${link}\n\nThis link expires in 10 minutes.`,
     html: verificationEmailHtml(
-      "Confirm your booking",
-      "Tap below to confirm your email and hold your appointment slot.",
-      "Confirm booking",
-      code,
+      "Confirm your request",
+      "One quick step before this goes to the office — confirm this is your email address.",
+      "Confirm request",
       link
     ),
   });
@@ -66,7 +71,14 @@ function buildContactLine(): string {
   return parts.length ? `Questions? ${parts.join(" or ")}.` : "";
 }
 
-function confirmationEmailHtml(heading: string, lines: string[], buttonLabel: string, link: string, footer: string): string {
+function confirmationEmailHtml(
+  heading: string,
+  subhead: string,
+  highlight: string,
+  buttonLabel: string,
+  link: string,
+  footer: string
+): string {
   return `
 <!doctype html>
 <html>
@@ -77,9 +89,12 @@ function confirmationEmailHtml(heading: string, lines: string[], buttonLabel: st
           <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:8px;padding:40px;">
             <tr>
               <td style="text-align:center;">
-                <h1 style="margin:0 0 12px;font-size:18px;color:#18181b;">${heading}</h1>
-                ${lines.map((line) => `<p style="margin:0 0 4px;font-size:14px;color:#3f3f46;">${line}</p>`).join("")}
-                <a href="${link}" style="display:inline-block;margin-top:20px;padding:12px 24px;background-color:#2563eb;border-radius:6px;color:#ffffff;font-size:14px;font-weight:600;text-decoration:none;">${buttonLabel}</a>
+                <h1 style="margin:0 0 8px;font-size:18px;color:#18181b;">${heading}</h1>
+                <p style="margin:0 0 20px;font-size:14px;color:#71717a;">${subhead}</p>
+                <div style="display:inline-block;padding:16px 28px;background-color:#f4f4f5;border-radius:6px;font-size:18px;font-weight:700;color:#18181b;">${highlight}</div>
+                <div>
+                  <a href="${link}" style="display:inline-block;margin-top:24px;padding:12px 24px;background-color:#2563eb;border-radius:6px;color:#ffffff;font-size:14px;font-weight:600;text-decoration:none;">${buttonLabel}</a>
+                </div>
                 ${footer ? `<p style="margin:24px 0 0;font-size:13px;color:#a1a1aa;">${footer}</p>` : ""}
               </td>
             </tr>
@@ -92,7 +107,7 @@ function confirmationEmailHtml(heading: string, lines: string[], buttonLabel: st
 }
 
 // Sent when staff approve a request — supersedes the earlier "confirm your
-// email" link with a fresh one, since the booking is now a real, kept
+// request" link with a fresh one, since the booking is now a real, kept
 // appointment the patient may refer back to at any point before it happens.
 export async function sendBookingConfirmedEmail(
   to: string,
@@ -106,16 +121,17 @@ export async function sendBookingConfirmedEmail(
     to,
     subject: "Your appointment is confirmed",
     text: [
-      `Your appointment with ${details.providerName} is confirmed for ${when}.`,
+      `You're confirmed with ${details.providerName} for ${when}.`,
       `View or manage your appointment: ${details.link}`,
       contactLine,
     ]
       .filter(Boolean)
       .join("\n\n"),
     html: confirmationEmailHtml(
-      "Your appointment is confirmed",
-      [`With ${details.providerName}`, when],
-      "View my appointment",
+      "You're confirmed",
+      `With ${details.providerName}`,
+      when,
+      "View or manage appointment",
       details.link,
       contactLine
     ),
@@ -136,8 +152,8 @@ export async function sendDocumentRequestEmail(to: string, code: string, link: s
       "Confirm your document request",
       "Tap below to confirm your email and send your request to our team.",
       "Confirm request",
-      code,
-      link
+      link,
+      code
     ),
   });
 

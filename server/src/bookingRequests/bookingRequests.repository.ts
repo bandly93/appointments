@@ -38,7 +38,6 @@ type InsertData = {
   endsAt: Date;
   notes?: string;
   accessTokenHash: string;
-  verificationCodeHash: string;
   verificationExpiresAt: Date;
 };
 
@@ -52,9 +51,7 @@ export function findBookingRequestByIdWithSecrets(id: string, client: PrismaOrTx
     select: {
       ...bookingRequestSelect,
       accessTokenHash: true,
-      verificationCodeHash: true,
       verificationExpiresAt: true,
-      verificationAttempts: true,
     },
   });
 }
@@ -80,9 +77,7 @@ export function updateBookingRequest(
     notes: string;
     status: BookingStatus;
     accessTokenHash: string;
-    verificationCodeHash: string | null;
     verificationExpiresAt: Date | null;
-    verificationAttempts: number;
   }>,
   client: PrismaOrTx = prisma
 ) {

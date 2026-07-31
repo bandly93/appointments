@@ -17,16 +17,15 @@ import { findPatientByEmail, insertPatient, updatePatientContact } from "../pati
 import { findActiveProviderById } from "../availability/availability.repository.js";
 import { findMatchingBookableSlot } from "../availability/availability.service.js";
 import { insertAppointment } from "../appointments/appointments.repository.js";
-import { generateAccessToken, generateVerificationCode, verifyToken } from "../lib/token.js";
+import { generateAccessToken, verifyToken } from "../lib/token.js";
 import { sendVerificationEmail, sendBookingConfirmedEmail } from "../lib/mailer.js";
 
 const VERIFICATION_TTL_MS = 10 * 60 * 1000;
-const MAX_VERIFICATION_ATTEMPTS = 5;
 const MAX_ACTIVE_REQUESTS_PER_PATIENT = 3;
 const CLIENT_URL = process.env.CLIENT_URL ?? "http://localhost:5173";
 
-function buildMyBookingLink(id: string, rawToken: string, code?: string): string {
-  return `${CLIENT_URL}/my-booking/${id}?token=${rawToken}${code ? `&code=${code}` : ""}`;
+function buildMyBookingLink(id: string, rawToken: string): string {
+  return `${CLIENT_URL}/my-booking/${id}?token=${rawToken}`;
 }
 
 // A request is only a confirmed hold once the patient's email is verified;
@@ -64,7 +63,6 @@ export async function createBookingRequest(rawInput: unknown) {
 
   const email = patientInput.email.toLowerCase();
   const { rawToken, tokenHash } = generateAccessToken();
-  const { rawCode, codeHash } = generateVerificationCode();
   const verificationExpiresAt = new Date(Date.now() + VERIFICATION_TTL_MS);
 
   try {
@@ -105,7 +103,6 @@ export async function createBookingRequest(rawInput: unknown) {
             endsAt: slot.endsAt,
             notes,
             accessTokenHash: tokenHash,
-            verificationCodeHash: codeHash,
             verificationExpiresAt,
           },
           tx
@@ -115,12 +112,12 @@ export async function createBookingRequest(rawInput: unknown) {
     );
 
     // A mail-provider hiccup shouldn't fail an already-committed booking —
-    // the patient can still use the my-booking link, or request a new code —
+    // the patient can still use the my-booking link, or ask us to resend it —
     // but the caller needs to know delivery failed so it isn't silently lost.
-    const link = buildMyBookingLink(bookingRequest.id, rawToken, rawCode);
+    const link = buildMyBookingLink(bookingRequest.id, rawToken);
     let emailSent = true;
     try {
-      await sendVerificationEmail(email, rawCode, link);
+      await sendVerificationEmail(email, link);
     } catch (err) {
       emailSent = false;
       console.error("Failed to send verification email", err);
@@ -147,12 +144,10 @@ async function loadWithSecrets(id: string, rawToken: string) {
 function toSafeBookingRequest<
   T extends {
     accessTokenHash: string;
-    verificationCodeHash: string | null;
     verificationExpiresAt: Date | null;
-    verificationAttempts: number;
   }
 >(bookingRequest: T) {
-  const { accessTokenHash, verificationCodeHash, verificationExpiresAt, verificationAttempts, ...safe } = bookingRequest;
+  const { accessTokenHash, verificationExpiresAt, ...safe } = bookingRequest;
   return safe;
 }
 
@@ -188,54 +183,32 @@ export async function cancelBookingRequestAsPatient(id: string, rawToken: string
   return updateBookingRequest(id, { status: "CANCELLED" });
 }
 
-const verifyCodeSchema = z.object({
-  code: z.string().trim().length(6),
-});
-
-export async function verifyBookingRequestEmail(id: string, rawToken: string, rawInput: unknown) {
+// Possessing the raw token (i.e. having received and opened the emailed
+// link) is itself the proof of email ownership — there's no separate code to
+// check. This only confirms the request is still within its hold window.
+export async function verifyBookingRequestEmail(id: string, rawToken: string) {
   const existing = await loadWithSecrets(id, rawToken);
   if (existing.status !== "UNVERIFIED") throw new Error("INVALID_STATUS");
-
-  const parsed = verifyCodeSchema.safeParse(rawInput);
-  if (!parsed.success) throw new Error("INVALID_INPUT");
 
   if (!existing.verificationExpiresAt || existing.verificationExpiresAt.getTime() < Date.now()) {
-    throw new Error("CODE_EXPIRED");
+    throw new Error("REQUEST_EXPIRED");
   }
 
-  if (existing.verificationAttempts >= MAX_VERIFICATION_ATTEMPTS) {
-    throw new Error("TOO_MANY_ATTEMPTS");
-  }
-
-  const isMatch = existing.verificationCodeHash !== null && verifyToken(parsed.data.code, existing.verificationCodeHash);
-  if (!isMatch) {
-    await updateBookingRequest(id, { verificationAttempts: existing.verificationAttempts + 1 });
-    throw new Error("INVALID_CODE");
-  }
-
-  return updateBookingRequest(id, {
-    status: "PENDING",
-    verificationCodeHash: null,
-    verificationExpiresAt: null,
-    verificationAttempts: 0,
-  });
+  return updateBookingRequest(id, { status: "PENDING", verificationExpiresAt: null });
 }
 
-export async function resendVerificationCode(id: string, rawToken: string) {
+// Re-sends the same link (the token never changes here) and refreshes the
+// hold window, in case the first email didn't arrive or the patient is
+// coming back after their original window lapsed.
+export async function resendVerificationEmail(id: string, rawToken: string) {
   const existing = await loadWithSecrets(id, rawToken);
   if (existing.status !== "UNVERIFIED") throw new Error("INVALID_STATUS");
 
-  const { rawCode, codeHash } = generateVerificationCode();
   const verificationExpiresAt = new Date(Date.now() + VERIFICATION_TTL_MS);
-
-  await updateBookingRequest(id, {
-    verificationCodeHash: codeHash,
-    verificationExpiresAt,
-    verificationAttempts: 0,
-  });
+  await updateBookingRequest(id, { verificationExpiresAt });
 
   try {
-    await sendVerificationEmail(existing.patient.email, rawCode, buildMyBookingLink(id, rawToken, rawCode));
+    await sendVerificationEmail(existing.patient.email, buildMyBookingLink(id, rawToken));
   } catch (err) {
     console.error("Failed to send verification email", err);
     throw new Error("EMAIL_SEND_FAILED");

@@ -196,12 +196,12 @@ model BookingRequest {
 
   accessTokenHash String @unique
 
-  // Email confirmation: the slot is a soft-hold while UNVERIFIED and expires
-  // if the patient doesn't confirm in time (see the partial unique index in
-  // the migration, which also treats UNVERIFIED as slot-blocking).
-  verificationCodeHash  String?
+  // Email confirmation: possessing the emailed link (i.e. the raw token) is
+  // itself the proof — there's no separate code. The slot is a soft-hold
+  // while UNVERIFIED and expires if the patient doesn't confirm in time (see
+  // the partial unique index in the migration, which also treats UNVERIFIED
+  // as slot-blocking).
   verificationExpiresAt DateTime?
-  verificationAttempts  Int       @default(0)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
