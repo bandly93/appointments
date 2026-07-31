@@ -49,29 +49,27 @@ export async function createBookingRequest(input: {
   return { id: data.bookingRequest.id, accessToken: data.accessToken, emailSent: data.emailSent }
 }
 
-export async function verifyBookingRequest(id: string, token: string, code: string): Promise<MyBookingRequest> {
+export async function verifyBookingRequest(id: string, token: string): Promise<MyBookingRequest> {
   const res = await fetch(`${API_URL}/api/public/booking-requests/${id}/verify?token=${encodeURIComponent(token)}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ code }),
   })
   const data = await res.json()
 
   if (!res.ok) {
-    throw new Error(data.error || 'Failed to verify code')
+    throw new Error(data.error || 'Failed to confirm request')
   }
 
   return data.bookingRequest
 }
 
-export async function resendVerificationCode(id: string, token: string): Promise<void> {
-  const res = await fetch(`${API_URL}/api/public/booking-requests/${id}/resend-code?token=${encodeURIComponent(token)}`, {
+export async function resendVerificationEmail(id: string, token: string): Promise<void> {
+  const res = await fetch(`${API_URL}/api/public/booking-requests/${id}/resend-email?token=${encodeURIComponent(token)}`, {
     method: 'POST',
   })
 
   if (!res.ok) {
     const data = await res.json()
-    throw new Error(data.error || 'Failed to resend code')
+    throw new Error(data.error || 'Failed to resend the email')
   }
 }
 

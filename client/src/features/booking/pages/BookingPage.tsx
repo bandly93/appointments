@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { getProvider, getSlots, createBookingRequest } from '../api/publicBookingApi'
+import { getProvider, getSlots, createBookingRequest, resendVerificationEmail } from '../api/publicBookingApi'
 import { type Slot, type Provider } from '../types/Booking'
 import Modal from '../../../shared/components/Modal'
 import PublicHeader from '../../../shared/components/PublicHeader'
-import VerifyCodeForm from '../components/VerifyCodeForm'
 
 function todayDateString(): string {
   return new Date().toISOString().slice(0, 10)
@@ -55,8 +54,7 @@ export default function BookingPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null)
-  const [booking, setBooking] = useState<{ id: string; accessToken: string; emailSent: boolean } | null>(null)
-  const [verified, setVerified] = useState(false)
+  const [booking, setBooking] = useState<{ id: string; accessToken: string; emailSent: boolean; email: string } | null>(null)
 
   useEffect(() => {
     if (!providerId) return
@@ -83,46 +81,39 @@ export default function BookingPage() {
     )
   }
 
-  if (booking && !verified) {
+  if (booking) {
     const link = `${window.location.origin}/my-booking/${booking.id}?token=${booking.accessToken}`
     return (
       <div className='min-h-screen bg-gray-50'>
         <PublicHeader />
         <div className='w-full max-w-xl mx-auto p-6 flex flex-col gap-4'>
-          {!booking.emailSent && (
-            <div className='rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800'>
-              We couldn't send the verification email to that address. Try "Resend code" below, or double-check the
-              address you entered — if it keeps failing, contact us for help confirming your booking.
-            </div>
-          )}
-          <SaveLinkBox
-            link={link}
-            message="Save this link now — if you leave this page before confirming, it's the only way back in to enter your code or request a new one."
-          />
-          <VerifyCodeForm
-            bookingId={booking.id}
-            token={booking.accessToken}
-            onVerified={() => setVerified(true)}
-          />
-        </div>
-      </div>
-    )
-  }
+          {booking.emailSent
+            ? (
+              <div className='rounded-lg border border-gray-200 bg-white shadow-sm p-6 text-center'>
+                <h1 className='text-xl font-semibold text-gray-900 mb-2'>Check your email</h1>
+                <p className='text-sm text-gray-600'>
+                  We've sent a link to <span className='font-medium text-gray-900'>{booking.email}</span> to confirm
+                  your request. Tap it and we'll take it from there — you don't need to keep this tab open. That
+                  email is also how you'll find your way back to check on it later.
+                </p>
+              </div>
+            )
+            : (
+              <div className='rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800'>
+                We couldn't email that confirmation to you. Try resending it below, or contact the office directly
+                to confirm your request.
+              </div>
+            )
+          }
 
-  if (booking && verified) {
-    const link = `${window.location.origin}/my-booking/${booking.id}?token=${booking.accessToken}`
-    return (
-      <div className='min-h-screen bg-gray-50'>
-        <PublicHeader />
-        <div className='w-full max-w-xl mx-auto p-6'>
-          <div className='rounded-lg border border-green-200 bg-green-50 p-6'>
-            <h1 className='text-xl font-semibold text-green-900 mb-2'>Request submitted</h1>
+          <ResendEmailAction bookingId={booking.id} token={booking.accessToken} />
+
+          {!booking.emailSent && (
             <SaveLinkBox
               link={link}
-              message='Your appointment request has been sent for approval. Save this link to view, edit, or cancel your request:'
-              bare
+              message="In the meantime, here's your link directly — save it so you don't lose access to this request."
             />
-          </div>
+          )}
         </div>
       </div>
     )
@@ -195,10 +186,10 @@ export default function BookingPage() {
   )
 }
 
-function SaveLinkBox({ link, message, bare = false }: { link: string; message: string; bare?: boolean }) {
-  const content = (
-    <>
-      <p className={`text-sm mb-4 ${bare ? 'text-green-800' : 'text-amber-800'}`}>{message}</p>
+function SaveLinkBox({ link, message }: { link: string; message: string }) {
+  return (
+    <div className='rounded-lg border border-amber-200 bg-amber-50 p-6'>
+      <p className='text-sm mb-4 text-amber-800'>{message}</p>
       <div className='flex items-center gap-2'>
         <input
           readOnly
@@ -214,14 +205,35 @@ function SaveLinkBox({ link, message, bare = false }: { link: string; message: s
           Copy link
         </button>
       </div>
-    </>
+    </div>
   )
+}
 
-  if (bare) return content
+function ResendEmailAction({ bookingId, token }: { bookingId: string; token: string }) {
+  const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
+
+  async function handleResend() {
+    setStatus('sending')
+    try {
+      await resendVerificationEmail(bookingId, token)
+      setStatus('sent')
+    } catch {
+      setStatus('error')
+    }
+  }
 
   return (
-    <div className='rounded-lg border border-amber-200 bg-amber-50 p-6'>
-      {content}
+    <div className='flex items-center gap-2 text-sm'>
+      <button
+        type='button'
+        onClick={() => void handleResend()}
+        disabled={status === 'sending'}
+        className='font-medium text-blue-600 hover:text-blue-800 disabled:opacity-50'
+      >
+        {status === 'sending' ? 'Sending…' : "Didn't get it? Resend the email"}
+      </button>
+      {status === 'sent' && <span className='text-green-700'>Sent — check your inbox.</span>}
+      {status === 'error' && <span className='text-red-700'>Couldn't resend. Try again shortly.</span>}
     </div>
   )
 }
@@ -235,7 +247,7 @@ function BookingFormModal({
   providerId: string
   slot: Slot
   onClose: () => void
-  onBooked: (result: { id: string; accessToken: string; emailSent: boolean }) => void
+  onBooked: (result: { id: string; accessToken: string; emailSent: boolean; email: string }) => void
 }) {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -264,7 +276,7 @@ function BookingFormModal({
           address: address.trim() || undefined,
         },
       })
-      onBooked(result)
+      onBooked({ ...result, email })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to submit booking request')
     } finally {

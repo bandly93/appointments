@@ -1,8 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
-import { getMyBooking, updateMyBooking, cancelMyBooking, verifyBookingRequest } from '../api/publicBookingApi'
+import {
+  getMyBooking,
+  updateMyBooking,
+  cancelMyBooking,
+  verifyBookingRequest,
+  resendVerificationEmail,
+} from '../api/publicBookingApi'
 import { type MyBookingRequest } from '../types/Booking'
-import VerifyCodeForm from '../components/VerifyCodeForm'
 import PublicHeader from '../../../shared/components/PublicHeader'
 import MyDocumentsPanel from '../../patientDocuments/components/MyDocumentsPanel'
 
@@ -19,7 +24,6 @@ export default function MyBookingPage() {
   const { requestId } = useParams<{ requestId: string }>()
   const [searchParams] = useSearchParams()
   const token = searchParams.get('token') ?? ''
-  const autoVerifyCode = searchParams.get('code') ?? ''
 
   const [booking, setBooking] = useState<MyBookingRequest | null>(null)
   const [loading, setLoading] = useState(true)
@@ -28,6 +32,7 @@ export default function MyBookingPage() {
   const [isSaving, setIsSaving] = useState(false)
   const [isAutoVerifying, setIsAutoVerifying] = useState(false)
   const [justConfirmed, setJustConfirmed] = useState(false)
+  const [resendStatus, setResendStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
   const autoVerifyAttempted = useRef(false)
 
   useEffect(() => {
@@ -39,14 +44,16 @@ export default function MyBookingPage() {
 
     getMyBooking(requestId, token)
       .then(async (b) => {
-        if (b.status === 'UNVERIFIED' && autoVerifyCode.length === 6 && !autoVerifyAttempted.current) {
+        // Loading this page with a valid token while UNVERIFIED is itself
+        // the proof of email ownership — no code needed.
+        if (b.status === 'UNVERIFIED' && !autoVerifyAttempted.current) {
           autoVerifyAttempted.current = true
           setIsAutoVerifying(true)
           try {
-            b = await verifyBookingRequest(requestId, token, autoVerifyCode)
+            b = await verifyBookingRequest(requestId, token)
             setJustConfirmed(true)
           } catch (err) {
-            setError(err instanceof Error ? err.message : 'Failed to verify code')
+            setError(err instanceof Error ? err.message : 'Failed to confirm this request')
           } finally {
             setIsAutoVerifying(false)
           }
@@ -56,7 +63,18 @@ export default function MyBookingPage() {
       })
       .catch((err) => setError(err instanceof Error ? err.message : 'Booking request not found'))
       .finally(() => setLoading(false))
-  }, [requestId, token, autoVerifyCode])
+  }, [requestId, token])
+
+  async function handleResend() {
+    if (!requestId) return
+    setResendStatus('sending')
+    try {
+      await resendVerificationEmail(requestId, token)
+      setResendStatus('sent')
+    } catch {
+      setResendStatus('error')
+    }
+  }
 
   async function handleSave() {
     if (!requestId) return
@@ -142,12 +160,22 @@ export default function MyBookingPage() {
         )}
 
         {booking.status === 'UNVERIFIED' && (
-          <div className='mb-4'>
-            <VerifyCodeForm
-              bookingId={booking.id}
-              token={token}
-              onVerified={(updated) => setBooking(updated)}
-            />
+          <div className='mb-4 rounded-lg border border-blue-200 bg-blue-50 p-4'>
+            <p className='text-sm text-blue-800 mb-3'>
+              This link has expired before we could confirm it. Send a fresh one to finish confirming your request.
+            </p>
+            <div className='flex items-center gap-2 text-sm'>
+              <button
+                type='button'
+                onClick={() => void handleResend()}
+                disabled={resendStatus === 'sending'}
+                className='rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white shadow-sm hover:bg-blue-500 disabled:opacity-50'
+              >
+                {resendStatus === 'sending' ? 'Sending…' : 'Resend confirmation email'}
+              </button>
+              {resendStatus === 'sent' && <span className='text-green-700'>Sent — check your inbox.</span>}
+              {resendStatus === 'error' && <span className='text-red-700'>Couldn't resend. Try again shortly.</span>}
+            </div>
           </div>
         )}
 
