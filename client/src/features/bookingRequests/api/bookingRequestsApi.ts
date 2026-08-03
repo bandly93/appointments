@@ -1,4 +1,5 @@
 import { type BookingRequest } from '../types/BookingRequest'
+import { type PatientInput } from '../../booking/types/Booking'
 
 const API_URL = import.meta.env.VITE_API_URL
 
@@ -38,6 +39,24 @@ export async function rejectBookingRequest(authFetch: AuthFetch, id: string): Pr
     const data = await res.json()
     throw new Error(data.error || 'Failed to reject booking request')
   }
+}
+
+export async function createPhoneBooking(
+  authFetch: AuthFetch,
+  input: { providerId: string; startsAt: string; notes?: string; patient: PatientInput },
+): Promise<{ emailSent: boolean }> {
+  const res = await authFetch(`${API_URL}/api/booking-requests/phone`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  })
+  const data = await res.json()
+
+  if (!res.ok) {
+    throw new Error(data.error || 'Failed to create booking')
+  }
+
+  return { emailSent: data.emailSent }
 }
 
 export async function deleteBookingRequest(authFetch: AuthFetch, id: string): Promise<void> {
