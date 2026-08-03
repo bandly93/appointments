@@ -1,15 +1,18 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../../auth/AuthContext'
 import { getProviders, getSlots } from '../../booking/api/publicBookingApi'
-import { createPhoneBooking } from '../api/bookingRequestsApi'
+import { createStaffBooking } from '../api/bookingRequestsApi'
+import { getPatients } from '../../patients/api/patientsApi'
 import { type Provider, type Slot } from '../../booking/types/Booking'
+import { type Patient } from '../../patients/types/Patient'
+import { useDebounce } from '../../../shared/hooks/useDebounce'
 import Modal from '../../../shared/components/Modal'
 
 function todayDateString(): string {
   return new Date().toISOString().slice(0, 10)
 }
 
-export default function PhoneBookingModal({ onClose, onBooked }: { onClose: () => void; onBooked: () => void }) {
+export default function StaffBookingModal({ onClose, onBooked }: { onClose: () => void; onBooked: () => void }) {
   const { authFetch, user } = useAuth()
 
   const [providers, setProviders] = useState<Provider[]>([])
@@ -18,6 +21,12 @@ export default function PhoneBookingModal({ onClose, onBooked }: { onClose: () =
   const [slots, setSlots] = useState<Slot[]>([])
   const [loadingSlots, setLoadingSlots] = useState(false)
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null)
+
+  const [patientQuery, setPatientQuery] = useState('')
+  const debouncedPatientQuery = useDebounce(patientQuery, 300)
+  const [patientResults, setPatientResults] = useState<Patient[]>([])
+  const [searchingPatients, setSearchingPatients] = useState(false)
+  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null)
 
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -52,6 +61,35 @@ export default function PhoneBookingModal({ onClose, onBooked }: { onClose: () =
       .finally(() => setLoadingSlots(false))
   }, [providerId, date])
 
+  useEffect(() => {
+    if (selectedPatient || debouncedPatientQuery.trim().length < 2) {
+      setPatientResults([])
+      return
+    }
+    setSearchingPatients(true)
+    getPatients(authFetch, debouncedPatientQuery.trim())
+      .then(setPatientResults)
+      .catch(() => setPatientResults([]))
+      .finally(() => setSearchingPatients(false))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedPatientQuery, selectedPatient])
+
+  function selectPatient(patient: Patient) {
+    setSelectedPatient(patient)
+    setPatientQuery('')
+    setPatientResults([])
+    setName(patient.name)
+    setEmail(patient.email)
+    setPhone(patient.phone ?? '')
+  }
+
+  function clearSelectedPatient() {
+    setSelectedPatient(null)
+    setName('')
+    setEmail('')
+    setPhone('')
+  }
+
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     if (!selectedSlot) {
@@ -61,7 +99,7 @@ export default function PhoneBookingModal({ onClose, onBooked }: { onClose: () =
     setIsSubmitting(true)
     setError(null)
     try {
-      const booked = await createPhoneBooking(authFetch, {
+      const booked = await createStaffBooking(authFetch, {
         providerId,
         startsAt: selectedSlot.startsAt,
         notes: notes.trim() || undefined,
@@ -98,14 +136,14 @@ export default function PhoneBookingModal({ onClose, onBooked }: { onClose: () =
   }
 
   return (
-    <Modal title='Book by phone' onClose={onClose}>
+    <Modal title='New booking' onClose={onClose}>
       <form onSubmit={handleSubmit}>
         <div className='mb-4'>
-          <label htmlFor='phone-booking-provider' className='mb-1.5 block text-sm font-medium text-gray-700'>
+          <label htmlFor='staff-booking-provider' className='mb-1.5 block text-sm font-medium text-gray-700'>
             Provider
           </label>
           <select
-            id='phone-booking-provider'
+            id='staff-booking-provider'
             required
             value={providerId}
             disabled={user?.role === 'PROVIDER'}
@@ -120,11 +158,11 @@ export default function PhoneBookingModal({ onClose, onBooked }: { onClose: () =
         </div>
 
         <div className='mb-4'>
-          <label htmlFor='phone-booking-date' className='mb-1.5 block text-sm font-medium text-gray-700'>
+          <label htmlFor='staff-booking-date' className='mb-1.5 block text-sm font-medium text-gray-700'>
             Date
           </label>
           <input
-            id='phone-booking-date'
+            id='staff-booking-date'
             type='date'
             value={date}
             min={todayDateString()}
@@ -163,11 +201,67 @@ export default function PhoneBookingModal({ onClose, onBooked }: { onClose: () =
         </div>
 
         <div className='mb-4'>
-          <label htmlFor='phone-booking-name' className='mb-1.5 block text-sm font-medium text-gray-700'>
+          <span className='mb-1.5 block text-sm font-medium text-gray-700'>Patient</span>
+
+          {selectedPatient
+            ? (
+              <div className='flex items-center justify-between rounded-md border border-blue-200 bg-blue-50 px-3 py-2'>
+                <div className='text-sm'>
+                  <span className='font-medium text-gray-900'>{selectedPatient.name}</span>
+                  <span className='text-gray-500'> — {selectedPatient.email}</span>
+                </div>
+                <button
+                  type='button'
+                  onClick={clearSelectedPatient}
+                  className='text-xs font-medium text-blue-600 hover:text-blue-800 whitespace-nowrap'
+                >
+                  Not them? Search again
+                </button>
+              </div>
+            )
+            : (
+              <div className='relative'>
+                <input
+                  type='text'
+                  placeholder='Search existing patients by name, email, or phone…'
+                  value={patientQuery}
+                  onChange={(e) => setPatientQuery(e.target.value)}
+                  className='w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                />
+                {(searchingPatients || patientResults.length > 0) && (
+                  <div className='absolute z-10 mt-1 w-full rounded-md border border-gray-200 bg-white shadow-lg max-h-48 overflow-y-auto'>
+                    {searchingPatients
+                      ? <div className='px-3 py-2 text-sm text-gray-500'>Searching…</div>
+                      : patientResults.map((p) => (
+                        <button
+                          key={p.id}
+                          type='button'
+                          onClick={() => selectPatient(p)}
+                          className='block w-full text-left px-3 py-2 text-sm hover:bg-gray-50'
+                        >
+                          <div className='text-gray-900 font-medium'>{p.name}</div>
+                          <div className='text-gray-500 text-xs'>
+                            {p.email}{p.phone ? ` · ${p.phone}` : ''}
+                          </div>
+                        </button>
+                      ))
+                    }
+                  </div>
+                )}
+                <p className='mt-1.5 text-xs text-gray-500'>
+                  No match? Fill in the fields below to book a new patient.
+                </p>
+              </div>
+            )
+          }
+        </div>
+
+        <div className='mb-4'>
+          <label htmlFor='staff-booking-name' className='mb-1.5 block text-sm font-medium text-gray-700'>
             Patient name
           </label>
           <input
-            id='phone-booking-name'
+            id='staff-booking-name'
             type='text'
             required
             value={name}
@@ -177,11 +271,11 @@ export default function PhoneBookingModal({ onClose, onBooked }: { onClose: () =
         </div>
 
         <div className='mb-4'>
-          <label htmlFor='phone-booking-email' className='mb-1.5 block text-sm font-medium text-gray-700'>
+          <label htmlFor='staff-booking-email' className='mb-1.5 block text-sm font-medium text-gray-700'>
             Email
           </label>
           <input
-            id='phone-booking-email'
+            id='staff-booking-email'
             type='email'
             required
             value={email}
@@ -191,11 +285,11 @@ export default function PhoneBookingModal({ onClose, onBooked }: { onClose: () =
         </div>
 
         <div className='mb-4'>
-          <label htmlFor='phone-booking-phone' className='mb-1.5 block text-sm font-medium text-gray-700'>
+          <label htmlFor='staff-booking-phone' className='mb-1.5 block text-sm font-medium text-gray-700'>
             Phone (optional)
           </label>
           <input
-            id='phone-booking-phone'
+            id='staff-booking-phone'
             type='tel'
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
@@ -204,11 +298,11 @@ export default function PhoneBookingModal({ onClose, onBooked }: { onClose: () =
         </div>
 
         <div className='mb-4'>
-          <label htmlFor='phone-booking-notes' className='mb-1.5 block text-sm font-medium text-gray-700'>
+          <label htmlFor='staff-booking-notes' className='mb-1.5 block text-sm font-medium text-gray-700'>
             Notes (optional)
           </label>
           <textarea
-            id='phone-booking-notes'
+            id='staff-booking-notes'
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows={2}

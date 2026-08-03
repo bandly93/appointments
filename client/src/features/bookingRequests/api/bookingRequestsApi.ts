@@ -41,11 +41,11 @@ export async function rejectBookingRequest(authFetch: AuthFetch, id: string): Pr
   }
 }
 
-export async function createPhoneBooking(
+export async function createStaffBooking(
   authFetch: AuthFetch,
   input: { providerId: string; startsAt: string; notes?: string; patient: PatientInput },
 ): Promise<{ emailSent: boolean }> {
-  const res = await authFetch(`${API_URL}/api/booking-requests/phone`, {
+  const res = await authFetch(`${API_URL}/api/booking-requests/staff`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(input),

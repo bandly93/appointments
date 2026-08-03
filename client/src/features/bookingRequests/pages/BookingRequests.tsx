@@ -4,7 +4,7 @@ import { getBookingRequests, approveBookingRequest, rejectBookingRequest, delete
 import { type BookingRequest, type BookingStatus } from '../types/BookingRequest'
 import { bookingRequestEvents, BOOKING_REQUESTS_CHANGED } from '../events'
 import StatusBadge, { STATUS_LABELS } from '../components/StatusBadge'
-import PhoneBookingModal from '../components/PhoneBookingModal'
+import StaffBookingModal from '../components/StaffBookingModal'
 import ProviderSelect from '../../appointments/components/ProviderSelect'
 import Navbar from '../../layout/Navbar'
 
@@ -21,7 +21,7 @@ export default function BookingRequests() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [actioningId, setActioningId] = useState<string | null>(null)
-  const [showPhoneBooking, setShowPhoneBooking] = useState(false)
+  const [showStaffBooking, setShowStaffBooking] = useState(false)
 
   const loadRequests = useCallback(async () => {
     setError(null)
@@ -78,10 +78,10 @@ export default function BookingRequests() {
           <div className='flex items-center gap-2'>
             <button
               type='button'
-              onClick={() => setShowPhoneBooking(true)}
+              onClick={() => setShowStaffBooking(true)}
               className='rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-500'
             >
-              Book by phone
+              New booking
             </button>
             <ProviderSelect value={providerFilter} onChange={setProviderFilter} />
             <select
@@ -183,11 +183,11 @@ export default function BookingRequests() {
           )
         }
 
-        {showPhoneBooking && (
-          <PhoneBookingModal
-            onClose={() => setShowPhoneBooking(false)}
+        {showStaffBooking && (
+          <StaffBookingModal
+            onClose={() => setShowStaffBooking(false)}
             onBooked={() => {
-              setShowPhoneBooking(false)
+              setShowStaffBooking(false)
               void loadRequests()
               bookingRequestEvents.publish(BOOKING_REQUESTS_CHANGED, {})
             }}
