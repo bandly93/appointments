@@ -2,7 +2,11 @@ import { type Slot, type Provider, type MyBookingRequest, type PatientInput } fr
 
 const API_URL = import.meta.env.VITE_API_URL
 
-export async function getClinicContact(): Promise<{ clinicPhone: string | null; clinicEmail: string | null }> {
+export async function getOfficeContact(): Promise<{
+  officePhone: string | null
+  officeEmail: string | null
+  officeLocation: string | null
+}> {
   const res = await fetch(`${API_URL}/api/public/config`)
   const data = await res.json()
 
@@ -10,7 +14,7 @@ export async function getClinicContact(): Promise<{ clinicPhone: string | null; 
     throw new Error(data.error || 'Failed to load contact info')
   }
 
-  return { clinicPhone: data.clinicPhone, clinicEmail: data.clinicEmail }
+  return { officePhone: data.officePhone, officeEmail: data.officeEmail, officeLocation: data.officeLocation }
 }
 
 export async function getProviders(): Promise<Provider[]> {
