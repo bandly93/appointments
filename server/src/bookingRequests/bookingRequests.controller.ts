@@ -6,7 +6,7 @@ import {
   approveBookingRequest,
   rejectBookingRequest,
   removeBookingRequestAsStaff,
-  createPhoneBookingRequest,
+  createStaffBookingRequest,
 } from "./bookingRequests.service.js";
 
 export async function getBookingRequests(req: Request, res: Response) {
@@ -67,9 +67,9 @@ export async function postReject(req: Request, res: Response) {
   }
 }
 
-export async function postPhoneBooking(req: Request, res: Response) {
+export async function postStaffBooking(req: Request, res: Response) {
   try {
-    const { appointment, emailSent } = await createPhoneBookingRequest(req.body, req.user!);
+    const { appointment, emailSent } = await createStaffBookingRequest(req.body, req.user!);
     res.status(201).json({ success: true, appointment, emailSent });
   } catch (err) {
     if (err instanceof Error && err.message === "INVALID_INPUT") {

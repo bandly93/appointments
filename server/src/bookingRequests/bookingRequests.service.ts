@@ -304,12 +304,13 @@ export async function approveBookingRequest(id: string, actor: Actor) {
   return appointment;
 }
 
-// Staff on a live call with the patient have already confirmed intent and
-// identity — there's nothing left to verify by email, so this lands straight
-// at APPROVED instead of going through UNVERIFIED/PENDING. Otherwise this is
-// the same slot-conflict-checked transaction as createBookingRequest, plus
-// the same appointment insert as approveBookingRequest above.
-export async function createPhoneBookingRequest(rawInput: unknown, actor: Actor) {
+// Staff creating a booking directly — phone call, walk-in, whatever the
+// channel — have already confirmed intent and identity in person, so
+// there's nothing left to verify by email. Lands straight at APPROVED
+// instead of going through UNVERIFIED/PENDING. Otherwise this is the same
+// slot-conflict-checked transaction as createBookingRequest, plus the same
+// appointment insert as approveBookingRequest above.
+export async function createStaffBookingRequest(rawInput: unknown, actor: Actor) {
   const parsed = createBookingRequestSchema.safeParse(rawInput);
   if (!parsed.success) throw new Error("INVALID_INPUT");
 
