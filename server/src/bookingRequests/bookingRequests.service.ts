@@ -22,7 +22,12 @@ import {
   updateAppointment as updateAppointmentRecord,
 } from "../appointments/appointments.repository.js";
 import { generateAccessToken, verifyToken } from "../lib/token.js";
-import { sendVerificationEmail, sendRequestPendingEmail, sendBookingConfirmedEmail } from "../lib/mailer.js";
+import {
+  sendVerificationEmail,
+  sendRequestPendingEmail,
+  sendBookingConfirmedEmail,
+  sendBookingRejectedEmail,
+} from "../lib/mailer.js";
 
 const VERIFICATION_TTL_MS = 10 * 60 * 1000;
 const MAX_ACTIVE_REQUESTS_PER_PATIENT = 3;
@@ -412,7 +417,24 @@ export async function rejectBookingRequest(id: string, actor: Actor) {
   assertActorCanDecide(existing, actor);
   if (existing.status !== "PENDING") throw new Error("INVALID_STATUS");
 
-  return updateBookingRequest(id, { status: "REJECTED" });
+  // Rotate the token the same way approve does: gives us a raw value to
+  // build a link with, and only the latest issued token is ever valid.
+  const { rawToken, tokenHash } = generateAccessToken();
+  const updated = await updateBookingRequest(id, { status: "REJECTED", accessTokenHash: tokenHash });
+
+  // A patient deserves to know either way, not just on approval — this was
+  // previously a silent status flip with no notification at all.
+  try {
+    await sendBookingRejectedEmail(updated.patient.email, {
+      providerName: updated.provider.displayName ?? "your provider",
+      startsAt: updated.startsAt,
+      link: buildMyBookingLink(id, rawToken),
+    });
+  } catch (err) {
+    console.error("Failed to send declined-request email", err);
+  }
+
+  return updated;
 }
 
 export async function removeBookingRequestAsStaff(id: string) {

@@ -25,10 +25,25 @@ async function sendWithRetry(
   return result;
 }
 
+function formatApptTime(date: Date): string {
+  return date.toLocaleString("en-US", {
+    weekday: "long", month: "long", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit",
+  });
+}
+
+// Only ever built from fixed env vars, never user input.
+function buildContactLine(): string {
+  const parts: string[] = [];
+  if (env.CLINIC_PHONE) parts.push(`call us at ${env.CLINIC_PHONE}`);
+  if (env.CLINIC_EMAIL) parts.push(`email ${env.CLINIC_EMAIL}`);
+  return parts.length ? `Questions? ${parts.join(" or ")}.` : "";
+}
+
 // `code` is optional: the booking flow proves email ownership with the link
 // alone (see bookingRequests.service.ts), while document requests still pair
 // the link with a manually-enterable code.
 function verificationEmailHtml(heading: string, body: string, buttonLabel: string, link: string, code?: string): string {
+  const contactLine = buildContactLine();
   return `
 <!doctype html>
 <html>
@@ -48,6 +63,7 @@ function verificationEmailHtml(heading: string, body: string, buttonLabel: strin
                 <p style="margin:24px 0 0;font-size:13px;color:#a1a1aa;">This code expires in 10 minutes. If you didn't request this, you can ignore this email.</p>`
                   : `<p style="margin:24px 0 0;font-size:13px;color:#a1a1aa;">This link expires in 10 minutes. If you didn't request an appointment, you can safely ignore this email.</p>`
                 }
+                ${contactLine ? `<p style="margin:20px 0 0;font-size:13px;color:#a1a1aa;">${contactLine}</p>` : ""}
               </td>
             </tr>
           </table>
@@ -59,15 +75,22 @@ function verificationEmailHtml(heading: string, body: string, buttonLabel: strin
 }
 
 export async function sendVerificationEmail(to: string, link: string): Promise<void> {
+  const contactLine = buildContactLine();
   const { error } = await sendWithRetry(() =>
     resend.emails.send({
       from: MAIL_FROM,
       to,
       subject: "Confirm your appointment request",
-      text: `Confirm your request: ${link}\n\nThis link expires in 10 minutes.`,
+      text: [
+        `Confirm your request: ${link}`,
+        "This link expires in 10 minutes. Once confirmed, we'll send your request to the office for review and follow up by email either way.",
+        contactLine,
+      ]
+        .filter(Boolean)
+        .join("\n\n"),
       html: verificationEmailHtml(
         "Confirm your request",
-        "One quick step before this goes to the office — confirm this is your email address.",
+        "One quick step before this goes to the office: confirm this is your email address. Once confirmed, we'll review your request and follow up by email either way.",
         "Confirm request",
         link
       ),
@@ -77,20 +100,6 @@ export async function sendVerificationEmail(to: string, link: string): Promise<v
   if (error) {
     throw new Error(`Failed to send verification email: ${error.message}`);
   }
-}
-
-function formatApptTime(date: Date): string {
-  return date.toLocaleString("en-US", {
-    weekday: "long", month: "long", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit",
-  });
-}
-
-// Only ever built from fixed env vars, never user input.
-function buildContactLine(): string {
-  const parts: string[] = [];
-  if (env.CLINIC_PHONE) parts.push(`call us at ${env.CLINIC_PHONE}`);
-  if (env.CLINIC_EMAIL) parts.push(`email ${env.CLINIC_EMAIL}`);
-  return parts.length ? `Questions? ${parts.join(" or ")}.` : "";
 }
 
 function confirmationEmailHtml(
@@ -147,14 +156,15 @@ export async function sendRequestPendingEmail(
       subject: "Your appointment request is in review",
       text: [
         `Your request with ${details.providerName} for ${when} has been sent to the office for review.`,
-        `Check its status any time: ${details.link}`,
+        "We'll email you as soon as it's been approved or declined — no need to follow up in the meantime, though you're welcome to check its status any time using the link below.",
+        `Check status: ${details.link}`,
         contactLine,
       ]
         .filter(Boolean)
         .join("\n\n"),
       html: confirmationEmailHtml(
         "Request received",
-        `Requested with ${details.providerName} — we'll email you once it's reviewed.`,
+        `Requested with ${details.providerName}. We'll email you as soon as it's approved or declined — no need to follow up in the meantime.`,
         when,
         "Check status",
         details.link,
@@ -185,6 +195,7 @@ export async function sendBookingConfirmedEmail(
       subject: "Your appointment is confirmed",
       text: [
         `You're confirmed with ${details.providerName} for ${when}.`,
+        "Please arrive a few minutes early. If your plans change, use the link below to view your appointment or let us know as soon as you can so we can offer the slot to someone else.",
         `View or manage your appointment: ${details.link}`,
         contactLine,
       ]
@@ -192,7 +203,7 @@ export async function sendBookingConfirmedEmail(
         .join("\n\n"),
       html: confirmationEmailHtml(
         "You're confirmed",
-        `With ${details.providerName}`,
+        `With ${details.providerName}. Please arrive a few minutes early — if your plans change, let us know as soon as you can.`,
         when,
         "View or manage appointment",
         details.link,
@@ -203,6 +214,47 @@ export async function sendBookingConfirmedEmail(
 
   if (error) {
     throw new Error(`Failed to send confirmation email: ${error.message}`);
+  }
+}
+
+// Sent when staff decline a request — previously a silent status flip with
+// no notification at all; a patient deserves to know either way, not just
+// on approval. Reuses the same (unrotated) token/link as the pending-review
+// email — rejecting doesn't rotate it — so the patient lands on their
+// request's status page, which explains next steps and how to reach us.
+export async function sendBookingRejectedEmail(
+  to: string,
+  details: { providerName: string; startsAt: Date; link: string }
+): Promise<void> {
+  const when = formatApptTime(details.startsAt);
+  const contactLine = buildContactLine();
+
+  const { error } = await sendWithRetry(() =>
+    resend.emails.send({
+      from: MAIL_FROM,
+      to,
+      subject: "Update on your appointment request",
+      text: [
+        `We're sorry — we weren't able to accommodate your request with ${details.providerName} for ${when}.`,
+        "This is usually because the slot was no longer available by the time we reviewed it. Feel free to submit a new request for another time, or get in touch and we'll help find one.",
+        `View details: ${details.link}`,
+        contactLine,
+      ]
+        .filter(Boolean)
+        .join("\n\n"),
+      html: confirmationEmailHtml(
+        "Request declined",
+        `We weren't able to accommodate your request with ${details.providerName} — usually because the slot was no longer available. Feel free to submit a new request for another time, or get in touch and we'll help find one.`,
+        when,
+        "View details",
+        details.link,
+        contactLine
+      ),
+    })
+  );
+
+  if (error) {
+    throw new Error(`Failed to send declined-request email: ${error.message}`);
   }
 }
 
