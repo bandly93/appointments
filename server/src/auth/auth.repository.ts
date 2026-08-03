@@ -44,3 +44,7 @@ export function deleteSessionById(id: string) {
   return prisma.session.deleteMany({ where: { id } });
 }
 
+export function deleteSessionsByUserId(userId: string) {
+  return prisma.session.deleteMany({ where: { userId } });
+}
+

@@ -1,8 +1,8 @@
 // src/users/users.service.ts
 import { z } from "zod";
 import { hashPassword } from "../auth/password.js";
-import { findUserByEmail } from "../auth/auth.repository.js";
-import { findAllUsers, insertUser } from "./users.repository.js";
+import { findUserByEmail, deleteSessionsByUserId } from "../auth/auth.repository.js";
+import { findAllUsers, insertUser, findUserById, updateUserPassword } from "./users.repository.js";
 
 const createUserSchema = z.object({
   email: z.string().trim().email(),
@@ -35,4 +35,26 @@ export async function createUser(rawInput: unknown) {
   const passwordHash = await hashPassword(input.password);
 
   return insertUser({ email, passwordHash, role: input.role });
+}
+
+const resetPasswordSchema = z.object({
+  password: z.string().min(8),
+});
+
+export async function resetUserPassword(id: string, rawInput: unknown) {
+  const existing = await findUserById(id);
+  if (!existing) throw new Error("NOT_FOUND");
+
+  const parsed = resetPasswordSchema.safeParse(rawInput);
+  if (!parsed.success) throw new Error("INVALID_INPUT");
+
+  const passwordHash = await hashPassword(parsed.data.password);
+  const user = await updateUserPassword(id, passwordHash);
+
+  // A new password should also kick out any session issued under the old
+  // one — otherwise a still-logged-in device (or whoever had it before)
+  // keeps working right through the reset.
+  await deleteSessionsByUserId(id);
+
+  return user;
 }

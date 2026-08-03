@@ -21,3 +21,15 @@ export function insertUser({ email, passwordHash, role }: CreateUserData) {
     select: { id: true, email: true, role: true, createdAt: true },
   });
 }
+
+export function findUserById(id: string) {
+  return prisma.user.findUnique({ where: { id }, select: { id: true, email: true, role: true, createdAt: true } });
+}
+
+export function updateUserPassword(id: string, passwordHash: string) {
+  return prisma.user.update({
+    where: { id },
+    data: { passwordHash },
+    select: { id: true, email: true, role: true, createdAt: true },
+  });
+}
