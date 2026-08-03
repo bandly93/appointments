@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useParams, useSearchParams } from 'react-router-dom'
+import { Link, useParams, useSearchParams } from 'react-router-dom'
 import {
   getMyBooking,
   updateMyBooking,
@@ -140,8 +140,8 @@ export default function MyBookingPage() {
 
         {justConfirmed && booking.status === 'PENDING' && (
           <div className='mb-4 rounded-lg border border-green-200 bg-green-50 p-4 text-sm text-green-800'>
-            ✓ Email confirmed. Your appointment request has been sent to the provider for approval — we'll let you
-            know once it's reviewed.
+            ✓ Email confirmed. Your appointment request has been sent to the office for review — we'll email you as
+            soon as it's approved or declined.
           </div>
         )}
 
@@ -184,10 +184,57 @@ export default function MyBookingPage() {
           </div>
         )}
 
+        {!justConfirmed && booking.status === 'PENDING' && (
+          <div className='mb-4 rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-800'>
+            Your request is with the office for review. We'll email you as soon as it's approved or declined — no
+            need to follow up in the meantime.
+          </div>
+        )}
+
+        {booking.status === 'APPROVED' && (
+          <div className='mb-4 rounded-lg border border-green-200 bg-green-50 p-4 text-sm text-green-800'>
+            You're all set — we look forward to seeing you. Please arrive a few minutes early. If your plans change,
+            let us know as soon as you can so we can offer the slot to someone else.
+          </div>
+        )}
+
+        {booking.status === 'REJECTED' && (
+          <div className='mb-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800'>
+            <p className='mb-3'>
+              We weren't able to accommodate this request — usually because the slot was no longer available by the
+              time it was reviewed.
+            </p>
+            <Link
+              to='/providers'
+              className='inline-block rounded-md bg-amber-600 px-3 py-1.5 text-sm font-medium text-white shadow-sm hover:bg-amber-500'
+            >
+              Book another time
+            </Link>
+          </div>
+        )}
+
+        {booking.status === 'CANCELLED' && (
+          <div className='mb-4 rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700'>
+            <p className='mb-3'>This request has been cancelled.</p>
+            <Link
+              to='/providers'
+              className='inline-block rounded-md bg-gray-700 px-3 py-1.5 text-sm font-medium text-white shadow-sm hover:bg-gray-600'
+            >
+              Book another time
+            </Link>
+          </div>
+        )}
+
         {booking.status === 'EXPIRED' && (
-          <p className='text-sm text-gray-500'>
-            This request expired before the email was confirmed. Please submit a new booking request.
-          </p>
+          <div className='mb-4 rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700'>
+            <p className='mb-3'>This request expired before the email was confirmed.</p>
+            <Link
+              to='/providers'
+              className='inline-block rounded-md bg-gray-700 px-3 py-1.5 text-sm font-medium text-white shadow-sm hover:bg-gray-600'
+            >
+              Submit a new request
+            </Link>
+          </div>
         )}
 
         {booking.status !== 'EXPIRED' && (
@@ -229,9 +276,7 @@ export default function MyBookingPage() {
               </div>
             </div>
           )
-          : booking.status !== 'EXPIRED' && (
-            <p className='text-sm text-gray-500'>This request can no longer be edited or cancelled.</p>
-          )
+          : null
         }
       </div>
     </div>
