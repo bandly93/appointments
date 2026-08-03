@@ -1,5 +1,6 @@
 import { Router } from "express";
 import {
+  getPublicConfig,
   getPublicProviders,
   getPublicSlots,
   postBookingRequest,
@@ -22,6 +23,7 @@ import {
 
 const router = Router();
 
+router.get("/config", getPublicConfig);
 router.get("/providers", getPublicProviders);
 router.get("/providers/:providerId/slots", getPublicSlots);
 router.post("/booking-requests", postBookingRequest);

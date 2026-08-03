@@ -1,6 +1,7 @@
 // src/public/public.controller.ts
 import { Request, Response } from "express";
 import { prisma } from "../lib/prisma.js";
+import { env } from "../config/env.js";
 import { getSlotsHandler } from "../availability/availability.controller.js";
 import {
   createBookingRequest,
@@ -21,6 +22,17 @@ import {
 import { streamDocumentFile } from "../documentRequests/documentRequests.controller.js";
 
 export const getPublicSlots = getSlotsHandler;
+
+// Non-secret contact info, already mailed to every patient in booking
+// confirmations — exposed here so the client can show the same fallback
+// path directly on-page when an email doesn't land.
+export async function getPublicConfig(_req: Request, res: Response) {
+  res.json({
+    success: true,
+    clinicPhone: env.CLINIC_PHONE ?? null,
+    clinicEmail: env.CLINIC_EMAIL ?? null,
+  });
+}
 
 export async function getPublicProviders(_req: Request, res: Response) {
   const providers = await prisma.user.findMany({
