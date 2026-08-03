@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../../auth/AuthContext'
-import { getUsers, createUser } from '../api/adminApi'
+import { getUsers, createUser, resetUserPassword } from '../api/adminApi'
 import { type User, type Role } from '../types/User'
 import Modal from '../../../shared/components/Modal'
 import PasswordInput from '../../../shared/components/PasswordInput'
@@ -12,6 +12,7 @@ export default function Users() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [resettingUser, setResettingUser] = useState<User | null>(null)
 
   const loadUsers = async () => {
     setLoading(true)
@@ -56,18 +57,28 @@ export default function Users() {
           ? <div className='py-10 text-center text-gray-500'>Loading....</div>
           : (
             <div className='overflow-x-auto rounded-lg border border-gray-200 shadow-sm'>
-              <div className='grid grid-cols-[1fr_120px_180px] bg-gray-50'>
+              <div className='grid grid-cols-[1fr_120px_140px_140px] bg-gray-50'>
                 <div className='px-4 py-3 text-sm font-semibold text-gray-700'>Email</div>
                 <div className='px-4 py-3 text-sm font-semibold text-gray-700'>Role</div>
                 <div className='px-4 py-3 text-sm font-semibold text-gray-700'>Created</div>
+                <div className='px-4 py-3 text-sm font-semibold text-gray-700'>Actions</div>
               </div>
               {users.length !== 0
                 ? users.map((user) => (
-                  <div key={user.id} className='grid grid-cols-[1fr_120px_180px] border-t border-gray-200'>
+                  <div key={user.id} className='grid grid-cols-[1fr_120px_140px_140px] border-t border-gray-200'>
                     <div className='px-4 py-3 text-sm text-gray-900'>{user.email}</div>
                     <div className='px-4 py-3 text-sm text-gray-700'>{user.role}</div>
                     <div className='px-4 py-3 text-sm text-gray-500'>
                       {new Date(user.createdAt).toLocaleDateString()}
+                    </div>
+                    <div className='px-4 py-3 text-sm'>
+                      <button
+                        type='button'
+                        onClick={() => setResettingUser(user)}
+                        className='font-medium text-blue-600 hover:text-blue-800'
+                      >
+                        Set password
+                      </button>
                     </div>
                   </div>
                 ))
@@ -90,8 +101,100 @@ export default function Users() {
             }}
           />
         )}
+
+        {resettingUser && (
+          <ResetPasswordModal
+            user={resettingUser}
+            onClose={() => setResettingUser(null)}
+          />
+        )}
       </div>
     </div>
+  )
+}
+
+function ResetPasswordModal({ user, onClose }: { user: User; onClose: () => void }) {
+  const { authFetch } = useAuth()
+  const [password, setPassword] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [done, setDone] = useState(false)
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    setIsSubmitting(true)
+    setError(null)
+    try {
+      await resetUserPassword(authFetch, user.id, password)
+      setDone(true)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to reset password')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  if (done) {
+    return (
+      <Modal title='Password updated' onClose={onClose}>
+        <div className='text-center py-4'>
+          <p className='text-sm text-gray-600 mb-4'>
+            {user.email}'s password has been changed. Any devices they were logged in on have been signed out.
+          </p>
+          <button
+            type='button'
+            onClick={onClose}
+            className='rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-500'
+          >
+            Done
+          </button>
+        </div>
+      </Modal>
+    )
+  }
+
+  return (
+    <Modal title={`Set password for ${user.email}`} onClose={onClose}>
+      <form onSubmit={handleSubmit}>
+        <div className='mb-4'>
+          <label htmlFor='reset-password' className='mb-1.5 block text-sm font-medium text-gray-700'>
+            New password
+          </label>
+          <PasswordInput
+            id='reset-password'
+            required
+            minLength={8}
+            autoComplete='new-password'
+            value={password}
+            onChange={setPassword}
+            dense
+          />
+        </div>
+
+        {error && (
+          <div className='mb-4 rounded-md bg-red-50 border border-red-200 text-red-700 px-4 py-2 text-sm'>
+            {error}
+          </div>
+        )}
+
+        <div className='flex justify-end gap-2'>
+          <button
+            type='button'
+            onClick={onClose}
+            className='rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50'
+          >
+            Cancel
+          </button>
+          <button
+            type='submit'
+            disabled={isSubmitting}
+            className='rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50'
+          >
+            {isSubmitting ? 'Saving…' : 'Set password'}
+          </button>
+        </div>
+      </form>
+    </Modal>
   )
 }
 
