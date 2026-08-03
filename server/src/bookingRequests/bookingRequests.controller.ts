@@ -6,6 +6,7 @@ import {
   approveBookingRequest,
   rejectBookingRequest,
   removeBookingRequestAsStaff,
+  createPhoneBookingRequest,
 } from "./bookingRequests.service.js";
 
 export async function getBookingRequests(req: Request, res: Response) {
@@ -61,6 +62,27 @@ export async function postReject(req: Request, res: Response) {
     }
     if (err instanceof Error && err.message === "INVALID_STATUS") {
       return res.status(409).json({ error: "Only pending requests can be rejected" });
+    }
+    throw err;
+  }
+}
+
+export async function postPhoneBooking(req: Request, res: Response) {
+  try {
+    const { appointment, emailSent } = await createPhoneBookingRequest(req.body, req.user!);
+    res.status(201).json({ success: true, appointment, emailSent });
+  } catch (err) {
+    if (err instanceof Error && err.message === "INVALID_INPUT") {
+      return res.status(400).json({ error: "Enter valid booking details" });
+    }
+    if (err instanceof Error && err.message === "PROVIDER_NOT_FOUND") {
+      return res.status(404).json({ error: "Provider not found" });
+    }
+    if (err instanceof Error && err.message === "FORBIDDEN") {
+      return res.status(403).json({ error: "You can only book on your own schedule" });
+    }
+    if (err instanceof Error && err.message === "SLOT_UNAVAILABLE") {
+      return res.status(409).json({ error: "That time is no longer available" });
     }
     throw err;
   }

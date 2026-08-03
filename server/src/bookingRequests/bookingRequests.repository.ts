@@ -38,7 +38,8 @@ type InsertData = {
   endsAt: Date;
   notes?: string;
   accessTokenHash: string;
-  verificationExpiresAt: Date;
+  verificationExpiresAt: Date | null;
+  status?: BookingStatus;
 };
 
 export function insertBookingRequest(data: InsertData, client: PrismaOrTx = prisma) {

@@ -304,6 +304,107 @@ export async function approveBookingRequest(id: string, actor: Actor) {
   return appointment;
 }
 
+// Staff on a live call with the patient have already confirmed intent and
+// identity — there's nothing left to verify by email, so this lands straight
+// at APPROVED instead of going through UNVERIFIED/PENDING. Otherwise this is
+// the same slot-conflict-checked transaction as createBookingRequest, plus
+// the same appointment insert as approveBookingRequest above.
+export async function createPhoneBookingRequest(rawInput: unknown, actor: Actor) {
+  const parsed = createBookingRequestSchema.safeParse(rawInput);
+  if (!parsed.success) throw new Error("INVALID_INPUT");
+
+  const { providerId, notes, patient: patientInput } = parsed.data;
+  const startsAt = new Date(parsed.data.startsAt);
+
+  if (actor.role === "PROVIDER" && providerId !== actor.sub) {
+    throw new Error("FORBIDDEN");
+  }
+
+  const provider = await findActiveProviderById(providerId);
+  if (!provider) throw new Error("PROVIDER_NOT_FOUND");
+
+  const slot = await findMatchingBookableSlot(providerId, startsAt);
+  if (!slot) throw new Error("SLOT_UNAVAILABLE");
+
+  const email = patientInput.email.toLowerCase();
+  const { rawToken, tokenHash } = generateAccessToken();
+
+  try {
+    const appointment = await prisma.$transaction(
+      async (tx) => {
+        const existingBooking = await findActiveBookingForSlot(providerId, startsAt, tx);
+        if (existingBooking) {
+          const isExpiredHold =
+            existingBooking.status === "UNVERIFIED" &&
+            existingBooking.verificationExpiresAt !== null &&
+            existingBooking.verificationExpiresAt.getTime() < Date.now();
+
+          if (!isExpiredHold) throw new Error("SLOT_UNAVAILABLE");
+          await updateBookingRequest(existingBooking.id, { status: "EXPIRED" }, tx);
+        }
+
+        const contact = {
+          name: patientInput.name,
+          phone: patientInput.phone,
+          dateOfBirth: patientInput.dateOfBirth,
+          address: patientInput.address,
+        };
+        const existingPatient = await findPatientByEmail(email, tx);
+        const patient = existingPatient
+          ? await updatePatientContact(existingPatient.id, contact, tx)
+          : await insertPatient({ email, ...contact }, tx);
+
+        const bookingRequest = await insertBookingRequest(
+          {
+            providerId,
+            patientId: patient.id,
+            startsAt: slot.startsAt,
+            endsAt: slot.endsAt,
+            notes,
+            accessTokenHash: tokenHash,
+            verificationExpiresAt: null,
+            status: "APPROVED",
+          },
+          tx
+        );
+
+        return insertAppointment(
+          {
+            providerId,
+            patientId: patient.id,
+            bookingRequestId: bookingRequest.id,
+            startsAt: slot.startsAt,
+            endsAt: slot.endsAt,
+            notes,
+          },
+          tx
+        );
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }
+    );
+
+    let emailSent = true;
+    try {
+      await sendBookingConfirmedEmail(email, {
+        providerName: appointment.provider.displayName ?? "your provider",
+        startsAt: appointment.startsAt,
+        link: buildMyBookingLink(appointment.bookingRequestId!, rawToken),
+      });
+    } catch (err) {
+      emailSent = false;
+      console.error("Failed to send booking confirmation email", err);
+    }
+
+    return { appointment, emailSent };
+  } catch (err) {
+    if (err instanceof Error && err.message === "SLOT_UNAVAILABLE") throw err;
+    if (err instanceof Prisma.PrismaClientKnownRequestError && (err.code === "P2002" || err.code === "P2034")) {
+      throw new Error("SLOT_UNAVAILABLE");
+    }
+    throw err;
+  }
+}
+
 export async function rejectBookingRequest(id: string, actor: Actor) {
   const existing = await findBookingRequestById(id);
   if (!existing) throw new Error("NOT_FOUND");
