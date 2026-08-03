@@ -10,6 +10,7 @@ import {
 import { type MyBookingRequest } from '../types/Booking'
 import PublicHeader from '../../../shared/components/PublicHeader'
 import MyDocumentsPanel from '../../patientDocuments/components/MyDocumentsPanel'
+import ContactFallback from '../components/ContactFallback'
 
 const STATUS_LABELS: Record<MyBookingRequest['status'], string> = {
   UNVERIFIED: 'Awaiting email confirmation',
@@ -151,6 +152,10 @@ export default function MyBookingPage() {
             })}
           </div>
           <div className='text-sm font-medium text-gray-900'>Status: {STATUS_LABELS[booking.status]}</div>
+        </div>
+
+        <div className='mb-4'>
+          <ContactFallback />
         </div>
 
         {error && (

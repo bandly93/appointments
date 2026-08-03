@@ -4,6 +4,7 @@ import { getProvider, getSlots, createBookingRequest, resendVerificationEmail } 
 import { type Slot, type Provider } from '../types/Booking'
 import Modal from '../../../shared/components/Modal'
 import PublicHeader from '../../../shared/components/PublicHeader'
+import ContactFallback from '../components/ContactFallback'
 
 function todayDateString(): string {
   return new Date().toISOString().slice(0, 10)
@@ -114,6 +115,8 @@ export default function BookingPage() {
               message="In the meantime, here's your link directly — save it so you don't lose access to this request."
             />
           )}
+
+          <ContactFallback />
         </div>
       </div>
     )
