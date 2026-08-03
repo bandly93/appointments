@@ -34,9 +34,11 @@ function formatApptTime(date: Date): string {
 // Only ever built from fixed env vars, never user input.
 function buildContactLine(): string {
   const parts: string[] = [];
-  if (env.CLINIC_PHONE) parts.push(`call us at ${env.CLINIC_PHONE}`);
-  if (env.CLINIC_EMAIL) parts.push(`email ${env.CLINIC_EMAIL}`);
-  return parts.length ? `Questions? ${parts.join(" or ")}.` : "";
+  if (env.OFFICE_CONTACT_NUMBER) parts.push(`call us at ${env.OFFICE_CONTACT_NUMBER}`);
+  if (env.OFFICE_CONTACT_EMAIL) parts.push(`email ${env.OFFICE_CONTACT_EMAIL}`);
+  const questions = parts.length ? `Questions? ${parts.join(" or ")}.` : "";
+  const location = env.OFFICE_LOCATION ? `We're located at ${env.OFFICE_LOCATION}.` : "";
+  return [questions, location].filter(Boolean).join(" ");
 }
 
 // `code` is optional: the booking flow proves email ownership with the link

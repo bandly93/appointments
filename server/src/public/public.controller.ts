@@ -29,8 +29,9 @@ export const getPublicSlots = getSlotsHandler;
 export async function getPublicConfig(_req: Request, res: Response) {
   res.json({
     success: true,
-    clinicPhone: env.CLINIC_PHONE ?? null,
-    clinicEmail: env.CLINIC_EMAIL ?? null,
+    officePhone: env.OFFICE_CONTACT_NUMBER ?? null,
+    officeEmail: env.OFFICE_CONTACT_EMAIL ?? null,
+    officeLocation: env.OFFICE_LOCATION ?? null,
   });
 }
 
