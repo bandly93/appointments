@@ -9,7 +9,11 @@ import { useDebounce } from '../../../shared/hooks/useDebounce'
 import Modal from '../../../shared/components/Modal'
 
 function todayDateString(): string {
-  return new Date().toISOString().slice(0, 10)
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
 }
 
 export default function StaffBookingModal({ onClose, onBooked }: { onClose: () => void; onBooked: () => void }) {
@@ -74,7 +78,37 @@ export default function StaffBookingModal({ onClose, onBooked }: { onClose: () =
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedPatientQuery, selectedPatient])
 
+  const debouncedEmail = useDebounce(email, 400)
+  const [emailMatch, setEmailMatch] = useState<Patient | null>(null)
+
+  // Manual entry can collide with an existing patient's email without staff
+  // ever searching for them — booking would silently overwrite that
+  // patient's name/phone/DOB/address (identity is resolved by email
+  // server-side). Surface the match so staff can pick the right record
+  // instead of clobbering it.
+  useEffect(() => {
+    const candidate = debouncedEmail.trim().toLowerCase()
+    if (selectedPatient || !candidate || !candidate.includes('@')) {
+      setEmailMatch(null)
+      return
+    }
+    let cancelled = false
+    getPatients(authFetch, candidate)
+      .then((results) => {
+        if (cancelled) return
+        setEmailMatch(results.find((p) => p.email.toLowerCase() === candidate) ?? null)
+      })
+      .catch(() => {
+        if (!cancelled) setEmailMatch(null)
+      })
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedEmail, selectedPatient])
+
   function selectPatient(patient: Patient) {
+    setEmailMatch(null)
     setSelectedPatient(patient)
     setPatientQuery('')
     setPatientResults([])
@@ -90,7 +124,7 @@ export default function StaffBookingModal({ onClose, onBooked }: { onClose: () =
     setPhone('')
   }
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(e: React.SubmitEvent<HTMLFormElement>) {
     e.preventDefault()
     if (!selectedSlot) {
       setError('Pick a time slot')
@@ -279,9 +313,28 @@ export default function StaffBookingModal({ onClose, onBooked }: { onClose: () =
             type='email'
             required
             value={email}
+            disabled={!!selectedPatient}
             onChange={(e) => setEmail(e.target.value)}
-            className='w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+            className='w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100'
           />
+          {selectedPatient && (
+            <p className='mt-1.5 text-xs text-gray-500'>
+              Email is locked to the selected patient. Use "Not them? Search again" to change it.
+            </p>
+          )}
+          {emailMatch && (
+            <div className='mt-1.5 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800'>
+              This email already belongs to <span className='font-medium'>{emailMatch.name}</span>. Continuing will
+              overwrite their saved details with what's entered above.{' '}
+              <button
+                type='button'
+                onClick={() => selectPatient(emailMatch)}
+                className='font-medium underline hover:text-amber-900'
+              >
+                Use this patient instead
+              </button>
+            </div>
+          )}
         </div>
 
         <div className='mb-4'>
