@@ -6,7 +6,7 @@ const router = Router();
 
 router.use(requireAuth);
 router.get("/", requireRole("STAFF", "ADMIN", "PROVIDER"), getAppointments);
-router.patch("/:id", requireRole("STAFF", "ADMIN"), patchAppointment);
+router.patch("/:id", requireRole("STAFF", "ADMIN", "PROVIDER"), patchAppointment);
 router.delete("/:id", requireRole("STAFF", "ADMIN"), deleteAppointmentHandler);
 
 export default router;

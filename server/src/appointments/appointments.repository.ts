@@ -68,3 +68,25 @@ export function deleteAppointment(id: string, client: PrismaOrTx = prisma) {
 export function findAppointmentByBookingRequestId(bookingRequestId: string, client: PrismaOrTx = prisma) {
   return client.appointment.findUnique({ where: { bookingRequestId }, select: appointmentSelect });
 }
+
+// Standard interval-overlap test (A.start < B.end && A.end > B.start) against
+// this provider's other live appointments — used when extending/shrinking an
+// already-scheduled appointment's duration, since that can newly collide with
+// whatever comes right after it on the calendar.
+export function findOverlappingAppointment(
+  providerId: string,
+  startsAt: Date,
+  endsAt: Date,
+  excludeId: string,
+  client: PrismaOrTx = prisma
+) {
+  return client.appointment.findFirst({
+    where: {
+      providerId,
+      id: { not: excludeId },
+      status: "SCHEDULED",
+      startsAt: { lt: endsAt },
+      endsAt: { gt: startsAt },
+    },
+  });
+}

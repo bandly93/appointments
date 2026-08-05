@@ -260,6 +260,48 @@ export async function sendBookingRejectedEmail(
   }
 }
 
+// Sent when staff/providers change the duration of an already-scheduled
+// appointment — the start time doesn't move, but the end time (and whatever
+// the patient sees on their my-booking page) does, so they should hear about
+// it the same way they hear about approval/decline.
+export async function sendAppointmentUpdatedEmail(
+  to: string,
+  details: { providerName: string; startsAt: Date; endsAt: Date; link: string }
+): Promise<void> {
+  const when = formatApptTime(details.startsAt);
+  const durationMinutes = Math.round((details.endsAt.getTime() - details.startsAt.getTime()) / 60_000);
+  const highlight = `${when} · ${durationMinutes} min`;
+  const contactLine = buildContactLine();
+
+  const { error } = await sendWithRetry(() =>
+    resend.emails.send({
+      from: MAIL_FROM,
+      to,
+      subject: "Your appointment time has been updated",
+      text: [
+        `Your appointment with ${details.providerName} has been updated: ${when}, ${durationMinutes} minutes.`,
+        "If this doesn't work for you, let us know as soon as you can.",
+        `View or manage your appointment: ${details.link}`,
+        contactLine,
+      ]
+        .filter(Boolean)
+        .join("\n\n"),
+      html: confirmationEmailHtml(
+        "Appointment updated",
+        `With ${details.providerName}. If this doesn't work for you, let us know as soon as you can.`,
+        highlight,
+        "View or manage appointment",
+        details.link,
+        contactLine
+      ),
+    })
+  );
+
+  if (error) {
+    throw new Error(`Failed to send appointment-updated email: ${error.message}`);
+  }
+}
+
 export async function sendDocumentRequestEmail(to: string, code: string, link: string): Promise<void> {
   const { error } = await sendWithRetry(() =>
     resend.emails.send({

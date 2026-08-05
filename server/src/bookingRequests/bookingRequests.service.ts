@@ -34,7 +34,10 @@ const VERIFICATION_TTL_MS = 10 * 60 * 1000;
 const MAX_ACTIVE_REQUESTS_PER_PATIENT = 3;
 const CLIENT_URL = process.env.CLIENT_URL ?? "http://localhost:5173";
 
-function buildMyBookingLink(id: string, rawToken: string): string {
+// Also used by appointments.service.ts to build the link for the
+// appointment-updated email — same "my booking" page, just reached after an
+// edit instead of a creation/approval.
+export function buildMyBookingLink(id: string, rawToken: string): string {
   return `${CLIENT_URL}/my-booking/${id}?token=${rawToken}`;
 }
 
