@@ -79,6 +79,7 @@ export function updateBookingRequest(
     status: BookingStatus;
     accessTokenHash: string;
     verificationExpiresAt: Date | null;
+    endsAt: Date;
   }>,
   client: PrismaOrTx = prisma
 ) {

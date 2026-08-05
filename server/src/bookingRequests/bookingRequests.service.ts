@@ -65,6 +65,10 @@ const createStaffBookingRequestSchema = createBookingRequestSchema.extend({
   durationMinutes: durationMinutesSchema,
 });
 
+const approveBookingRequestSchema = z.object({
+  durationMinutes: durationMinutesSchema,
+});
+
 export async function createBookingRequest(rawInput: unknown) {
   const parsed = createBookingRequestSchema.safeParse(rawInput);
   if (!parsed.success) throw new Error("INVALID_INPUT");
@@ -275,11 +279,22 @@ export async function updateBookingRequestAsStaff(id: string, rawInput: unknown)
   return updateBookingRequest(id, { notes: parsed.data.notes });
 }
 
-export async function approveBookingRequest(id: string, actor: Actor) {
+export async function approveBookingRequest(id: string, actor: Actor, rawInput: unknown = {}) {
   const existing = await findBookingRequestById(id);
   if (!existing) throw new Error("NOT_FOUND");
   assertActorCanDecide(existing, actor);
   if (existing.status !== "PENDING") throw new Error("INVALID_STATUS");
+
+  const parsed = approveBookingRequestSchema.safeParse(rawInput ?? {});
+  if (!parsed.success) throw new Error("INVALID_INPUT");
+  const { durationMinutes } = parsed.data;
+
+  // Staff can extend/shrink the booking at approval time, same as when
+  // creating one directly — the patient's original request only ever carried
+  // the availability rule's nominal slot length.
+  const endsAt = durationMinutes
+    ? endsAtFromDuration(existing.startsAt, durationMinutes)
+    : existing.endsAt;
 
   // Rotate the access token: the confirmation link below is the one worth
   // keeping now that the booking is a real appointment, and only the latest
@@ -288,14 +303,14 @@ export async function approveBookingRequest(id: string, actor: Actor) {
   const { rawToken, tokenHash } = generateAccessToken();
 
   const appointment = await prisma.$transaction(async (tx) => {
-    await updateBookingRequest(id, { status: "APPROVED", accessTokenHash: tokenHash }, tx);
+    await updateBookingRequest(id, { status: "APPROVED", accessTokenHash: tokenHash, endsAt }, tx);
     return insertAppointment(
       {
         providerId: existing.providerId,
         patientId: existing.patientId,
         bookingRequestId: id,
         startsAt: existing.startsAt,
-        endsAt: existing.endsAt,
+        endsAt,
         notes: existing.notes ?? undefined,
       },
       tx

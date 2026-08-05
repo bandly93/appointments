@@ -33,7 +33,7 @@ export async function patchBookingRequest(req: Request, res: Response) {
 
 export async function postApprove(req: Request, res: Response) {
   try {
-    const appointment = await approveBookingRequest(String(req.params.id), req.user!);
+    const appointment = await approveBookingRequest(String(req.params.id), req.user!, req.body);
     res.json({ success: true, appointment });
   } catch (err) {
     if (err instanceof Error && err.message === "NOT_FOUND") {
@@ -44,6 +44,9 @@ export async function postApprove(req: Request, res: Response) {
     }
     if (err instanceof Error && err.message === "INVALID_STATUS") {
       return res.status(409).json({ error: "Only pending requests can be approved" });
+    }
+    if (err instanceof Error && err.message === "INVALID_INPUT") {
+      return res.status(400).json({ error: "Enter a valid duration" });
     }
     throw err;
   }
