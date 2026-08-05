@@ -44,3 +44,22 @@ export async function updateAppointmentStatus(
 
   return data.appointment
 }
+
+export async function updateAppointmentDuration(
+  authFetch: AuthFetch,
+  id: string,
+  durationMinutes: number
+): Promise<Appointment> {
+  const res = await authFetch(`${API_URL}/api/appointments/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ durationMinutes }),
+  })
+  const data = await res.json()
+
+  if (!res.ok) {
+    throw new Error(data.error || 'Failed to update appointment duration')
+  }
+
+  return data.appointment
+}

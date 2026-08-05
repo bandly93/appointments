@@ -4,7 +4,8 @@ import Navbar from '../../layout/Navbar'
 import Modal from '../../../shared/components/Modal'
 import WeekCalendar, { type CalendarBlock } from '../components/WeekCalendar'
 import ProviderSelect from '../../appointments/components/ProviderSelect'
-import { getAppointments, updateAppointmentStatus } from '../../appointments/api/appointmentsApi'
+import { getAppointments, updateAppointmentStatus, updateAppointmentDuration } from '../../appointments/api/appointmentsApi'
+import DurationStepper, { nominalDurationMinutes } from '../../../shared/components/DurationStepper'
 import { type Appointment, type AppointmentStatus } from '../../appointments/types/Appointment'
 import { getBookingRequests, approveBookingRequest, rejectBookingRequest } from '../../bookingRequests/api/bookingRequestsApi'
 import { type BookingRequest } from '../../bookingRequests/types/BookingRequest'
@@ -133,6 +134,20 @@ export default function Schedule() {
     }
   }
 
+  async function handleDurationChange(id: string, durationMinutes: number) {
+    setIsActing(true)
+    setError(null)
+    try {
+      const updated = await updateAppointmentDuration(authFetch, id, durationMinutes)
+      setAppointments((current) => current.map((a) => (a.id === id ? updated : a)))
+      setSelected({ kind: 'appointment', appointment: updated })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update appointment duration')
+    } finally {
+      setIsActing(false)
+    }
+  }
+
   const weekEnd = addDays(weekStart, 6)
   const sameMonth = weekStart.getMonth() === weekEnd.getMonth()
   const weekLabel = `${weekStart.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} – ${weekEnd.toLocaleDateString(
@@ -209,9 +224,14 @@ export default function Schedule() {
               selection={selected}
               isActing={isActing}
               canEditStatus={canEditStatus}
+              canEditDuration={
+                selected.kind === 'appointment' &&
+                (canEditStatus || (isProvider && selected.appointment.providerId === user?.id))
+              }
               canDecide={selected.kind === 'request' && (!isProvider || selected.request.providerId === user?.id)}
               onDecision={handleDecision}
               onStatusChange={handleStatusChange}
+              onDurationChange={handleDurationChange}
             />
           </Modal>
         )}
@@ -224,16 +244,20 @@ function EventDetails({
   selection,
   isActing,
   canEditStatus,
+  canEditDuration,
   canDecide,
   onDecision,
   onStatusChange,
+  onDurationChange,
 }: {
   selection: Selection
   isActing: boolean
   canEditStatus: boolean
+  canEditDuration: boolean
   canDecide: boolean
   onDecision: (id: string, decision: 'approve' | 'decline') => void
   onStatusChange: (id: string, status: AppointmentStatus) => void
+  onDurationChange: (id: string, durationMinutes: number) => void
 }) {
   const data = selection.kind === 'request' ? selection.request : selection.appointment
 
@@ -305,6 +329,51 @@ function EventDetails({
           </div>
         )
       }
+
+      {selection.kind === 'appointment' && canEditDuration && selection.appointment.status !== 'CANCELLED' && (
+        <div className='flex items-center justify-between gap-2'>
+          <span className='text-gray-600'>Duration</span>
+          <AppointmentDurationEditor
+            appointment={selection.appointment}
+            isActing={isActing}
+            onSave={onDurationChange}
+          />
+        </div>
+      )}
+    </div>
+  )
+}
+
+function AppointmentDurationEditor({
+  appointment,
+  isActing,
+  onSave,
+}: {
+  appointment: Appointment
+  isActing: boolean
+  onSave: (id: string, durationMinutes: number) => void
+}) {
+  const [minutes, setMinutes] = useState(() => nominalDurationMinutes(appointment))
+
+  useEffect(() => {
+    setMinutes(nominalDurationMinutes(appointment))
+  }, [appointment.id, appointment.startsAt, appointment.endsAt])
+
+  const changed = minutes !== nominalDurationMinutes(appointment)
+
+  return (
+    <div className='flex items-center gap-2'>
+      <DurationStepper minutes={minutes} onChange={setMinutes} />
+      {changed && (
+        <button
+          type='button'
+          disabled={isActing}
+          onClick={() => onSave(appointment.id, minutes)}
+          className='rounded-md bg-blue-600 px-2.5 py-1.5 text-sm font-medium text-white shadow-sm hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50'
+        >
+          Save
+        </button>
+      )}
     </div>
   )
 }
