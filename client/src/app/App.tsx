@@ -11,6 +11,7 @@ import ProtectedRoute from "../features/auth/components/ProtectedRoute"
 import AdminRoute from "../features/auth/components/AdminRoute"
 import RoleRoute from "../features/auth/components/RoleRoute"
 import Landing from "../features/landing/pages/Landing"
+import Contact from "../features/landing/pages/Contact"
 import BookingPage from "../features/booking/pages/BookingPage"
 import MyBookingPage from "../features/booking/pages/MyBookingPage"
 import ProvidersList from "../features/booking/pages/ProvidersList"
@@ -34,6 +35,7 @@ function App() {
         element={isLoading ? null : isAuthenticated ? <Navigate to='/dashboard' replace /> : <Login />}
       />
       {/* public routes */}
+      <Route path='/contact' element={<Contact />} />
       <Route path='/providers' element={<ProvidersList />} />
       <Route path='/book/:providerId' element={<BookingPage />} />
       <Route path='/my-booking/:requestId' element={<MyBookingPage />} />
