@@ -5,8 +5,10 @@ import { type BookingRequest, type BookingStatus } from '../types/BookingRequest
 import { bookingRequestEvents, BOOKING_REQUESTS_CHANGED } from '../events'
 import StatusBadge, { STATUS_LABELS } from '../components/StatusBadge'
 import StaffBookingModal from '../components/StaffBookingModal'
+import StaffBookingDetailsModal from '../components/StaffBookingDetailsModal'
 import ProviderSelect from '../../appointments/components/ProviderSelect'
 import Navbar from '../../layout/Navbar'
+import { type Slot } from '../../booking/types/Booking'
 
 const STATUSES: BookingStatus[] = ['PENDING', 'UNVERIFIED', 'APPROVED', 'REJECTED', 'CANCELLED', 'EXPIRED']
 
@@ -22,6 +24,7 @@ export default function BookingRequests() {
   const [error, setError] = useState<string | null>(null)
   const [actioningId, setActioningId] = useState<string | null>(null)
   const [showStaffBooking, setShowStaffBooking] = useState(false)
+  const [pendingSlot, setPendingSlot] = useState<{ providerId: string; slot: Slot } | null>(null)
 
   const loadRequests = useCallback(async () => {
     setError(null)
@@ -186,8 +189,20 @@ export default function BookingRequests() {
         {showStaffBooking && (
           <StaffBookingModal
             onClose={() => setShowStaffBooking(false)}
-            onBooked={() => {
+            onSlotChosen={(providerId, slot) => {
               setShowStaffBooking(false)
+              setPendingSlot({ providerId, slot })
+            }}
+          />
+        )}
+
+        {pendingSlot && (
+          <StaffBookingDetailsModal
+            providerId={pendingSlot.providerId}
+            slot={pendingSlot.slot}
+            onClose={() => setPendingSlot(null)}
+            onBooked={() => {
+              setPendingSlot(null)
               void loadRequests()
               bookingRequestEvents.publish(BOOKING_REQUESTS_CHANGED, {})
             }}

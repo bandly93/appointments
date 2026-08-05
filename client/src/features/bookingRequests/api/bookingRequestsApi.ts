@@ -43,7 +43,7 @@ export async function rejectBookingRequest(authFetch: AuthFetch, id: string): Pr
 
 export async function createStaffBooking(
   authFetch: AuthFetch,
-  input: { providerId: string; startsAt: string; notes?: string; patient: PatientInput },
+  input: { providerId: string; startsAt: string; durationMinutes?: number; notes?: string; patient: PatientInput },
 ): Promise<{ emailSent: boolean }> {
   const res = await authFetch(`${API_URL}/api/booking-requests/staff`, {
     method: 'POST',
