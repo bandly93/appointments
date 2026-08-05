@@ -28,6 +28,7 @@ import {
   sendBookingConfirmedEmail,
   sendBookingRejectedEmail,
 } from "../lib/mailer.js";
+import { durationMinutesSchema, endsAtFromDuration } from "../lib/duration.js";
 
 const VERIFICATION_TTL_MS = 10 * 60 * 1000;
 const MAX_ACTIVE_REQUESTS_PER_PATIENT = 3;
@@ -55,6 +56,13 @@ const createBookingRequestSchema = z.object({
   startsAt: z.string().datetime(),
   notes: z.string().trim().max(1000).optional(),
   patient: patientSchema,
+});
+
+// Patients always get the availability rule's nominal slot length — only
+// staff/providers can extend or shrink a booking, since patients have no way
+// to know how long they'll actually need.
+const createStaffBookingRequestSchema = createBookingRequestSchema.extend({
+  durationMinutes: durationMinutesSchema,
 });
 
 export async function createBookingRequest(rawInput: unknown) {
@@ -316,10 +324,10 @@ export async function approveBookingRequest(id: string, actor: Actor) {
 // slot-conflict-checked transaction as createBookingRequest, plus the same
 // appointment insert as approveBookingRequest above.
 export async function createStaffBookingRequest(rawInput: unknown, actor: Actor) {
-  const parsed = createBookingRequestSchema.safeParse(rawInput);
+  const parsed = createStaffBookingRequestSchema.safeParse(rawInput);
   if (!parsed.success) throw new Error("INVALID_INPUT");
 
-  const { providerId, notes, patient: patientInput } = parsed.data;
+  const { providerId, notes, durationMinutes, patient: patientInput } = parsed.data;
   const startsAt = new Date(parsed.data.startsAt);
 
   if (actor.role === "PROVIDER" && providerId !== actor.sub) {
@@ -331,6 +339,8 @@ export async function createStaffBookingRequest(rawInput: unknown, actor: Actor)
 
   const slot = await findMatchingBookableSlot(providerId, startsAt);
   if (!slot) throw new Error("SLOT_UNAVAILABLE");
+
+  const endsAt = durationMinutes ? endsAtFromDuration(startsAt, durationMinutes) : slot.endsAt;
 
   const email = patientInput.email.toLowerCase();
   const { rawToken, tokenHash } = generateAccessToken();
@@ -365,7 +375,7 @@ export async function createStaffBookingRequest(rawInput: unknown, actor: Actor)
             providerId,
             patientId: patient.id,
             startsAt: slot.startsAt,
-            endsAt: slot.endsAt,
+            endsAt,
             notes,
             accessTokenHash: tokenHash,
             verificationExpiresAt: null,
@@ -380,7 +390,7 @@ export async function createStaffBookingRequest(rawInput: unknown, actor: Actor)
             patientId: patient.id,
             bookingRequestId: bookingRequest.id,
             startsAt: slot.startsAt,
-            endsAt: slot.endsAt,
+            endsAt,
             notes,
           },
           tx
