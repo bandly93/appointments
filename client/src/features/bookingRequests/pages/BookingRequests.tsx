@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useAuth } from '../../auth/AuthContext'
-import { getBookingRequests, approveBookingRequest, rejectBookingRequest, deleteBookingRequest } from '../api/bookingRequestsApi'
+import { getBookingRequests, rejectBookingRequest, deleteBookingRequest } from '../api/bookingRequestsApi'
 import { type BookingRequest, type BookingStatus } from '../types/BookingRequest'
 import { bookingRequestEvents, BOOKING_REQUESTS_CHANGED } from '../events'
 import StatusBadge, { STATUS_LABELS } from '../components/StatusBadge'
 import StaffBookingModal from '../components/StaffBookingModal'
 import StaffBookingDetailsModal from '../components/StaffBookingDetailsModal'
+import ApproveBookingModal from '../components/ApproveBookingModal'
 import ProviderSelect from '../../appointments/components/ProviderSelect'
 import Navbar from '../../layout/Navbar'
 import { type Slot } from '../../booking/types/Booking'
@@ -25,6 +26,7 @@ export default function BookingRequests() {
   const [actioningId, setActioningId] = useState<string | null>(null)
   const [showStaffBooking, setShowStaffBooking] = useState(false)
   const [pendingSlot, setPendingSlot] = useState<{ providerId: string; slot: Slot } | null>(null)
+  const [approvingRequest, setApprovingRequest] = useState<BookingRequest | null>(null)
 
   const loadRequests = useCallback(async () => {
     setError(null)
@@ -145,7 +147,7 @@ export default function BookingRequests() {
                               <button
                                 type='button'
                                 disabled={actioningId === r.id}
-                                onClick={() => void runAction(r.id, () => approveBookingRequest(authFetch, r.id), 'Failed to approve request')}
+                                onClick={() => setApprovingRequest(r)}
                                 className='rounded-md bg-green-600 px-3 py-1.5 text-sm font-medium text-white shadow-sm hover:bg-green-500 disabled:opacity-50'
                               >
                                 Approve
@@ -205,6 +207,19 @@ export default function BookingRequests() {
               setPendingSlot(null)
               void loadRequests()
               bookingRequestEvents.publish(BOOKING_REQUESTS_CHANGED, {})
+            }}
+          />
+        )}
+
+        {approvingRequest && (
+          <ApproveBookingModal
+            request={approvingRequest}
+            onClose={() => setApprovingRequest(null)}
+            onApproved={() => {
+              const id = approvingRequest.id
+              setApprovingRequest(null)
+              void loadRequests()
+              bookingRequestEvents.publish(BOOKING_REQUESTS_CHANGED, { id })
             }}
           />
         )}

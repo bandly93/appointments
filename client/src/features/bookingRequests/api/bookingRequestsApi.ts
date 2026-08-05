@@ -23,8 +23,16 @@ export async function getBookingRequests(
   return data.bookingRequests
 }
 
-export async function approveBookingRequest(authFetch: AuthFetch, id: string): Promise<void> {
-  const res = await authFetch(`${API_URL}/api/booking-requests/${id}/approve`, { method: 'POST' })
+export async function approveBookingRequest(
+  authFetch: AuthFetch,
+  id: string,
+  durationMinutes?: number,
+): Promise<void> {
+  const res = await authFetch(`${API_URL}/api/booking-requests/${id}/approve`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ durationMinutes }),
+  })
 
   if (!res.ok) {
     const data = await res.json()

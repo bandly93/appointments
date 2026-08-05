@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../auth/AuthContext'
-import { getBookingRequests, approveBookingRequest, rejectBookingRequest } from '../api/bookingRequestsApi'
+import { getBookingRequests, rejectBookingRequest } from '../api/bookingRequestsApi'
 import { type BookingRequest } from '../types/BookingRequest'
 import { bookingRequestEvents, BOOKING_REQUESTS_CHANGED } from '../events'
+import ApproveBookingModal from './ApproveBookingModal'
 
 // Dashboard inbox: pending requests the signed-in user can act on right away.
 // Providers see their own queue; staff/admin see everyone's.
@@ -15,6 +16,7 @@ export default function PendingRequestsPanel() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [actioningId, setActioningId] = useState<string | null>(null)
+  const [approvingRequest, setApprovingRequest] = useState<BookingRequest | null>(null)
 
   useEffect(() => {
     getBookingRequests(authFetch, { status: 'PENDING', providerId: isProvider ? user?.id : undefined })
@@ -24,22 +26,24 @@ export default function PendingRequestsPanel() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  async function handleDecision(id: string, decision: 'approve' | 'decline') {
+  async function handleDecline(id: string) {
     setActioningId(id)
     setError(null)
     try {
-      if (decision === 'approve') {
-        await approveBookingRequest(authFetch, id)
-      } else {
-        await rejectBookingRequest(authFetch, id)
-      }
+      await rejectBookingRequest(authFetch, id)
       setRequests((current) => current.filter((r) => r.id !== id))
-      bookingRequestEvents.publish(BOOKING_REQUESTS_CHANGED, { id, decision })
+      bookingRequestEvents.publish(BOOKING_REQUESTS_CHANGED, { id, decision: 'decline' })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update request')
     } finally {
       setActioningId(null)
     }
+  }
+
+  function handleApproved(id: string) {
+    setApprovingRequest(null)
+    setRequests((current) => current.filter((r) => r.id !== id))
+    bookingRequestEvents.publish(BOOKING_REQUESTS_CHANGED, { id, decision: 'approve' })
   }
 
   if (loading || (requests.length === 0 && !error)) return null
@@ -85,7 +89,7 @@ export default function PendingRequestsPanel() {
               <button
                 type='button'
                 disabled={actioningId === r.id}
-                onClick={() => handleDecision(r.id, 'approve')}
+                onClick={() => setApprovingRequest(r)}
                 className='rounded-md bg-green-600 px-3 py-1.5 text-sm font-medium text-white shadow-sm hover:bg-green-500 disabled:opacity-50'
               >
                 Approve
@@ -93,7 +97,7 @@ export default function PendingRequestsPanel() {
               <button
                 type='button'
                 disabled={actioningId === r.id}
-                onClick={() => handleDecision(r.id, 'decline')}
+                onClick={() => void handleDecline(r.id)}
                 className='rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50'
               >
                 Decline
@@ -102,6 +106,14 @@ export default function PendingRequestsPanel() {
           </li>
         ))}
       </ul>
+
+      {approvingRequest && (
+        <ApproveBookingModal
+          request={approvingRequest}
+          onClose={() => setApprovingRequest(null)}
+          onApproved={() => handleApproved(approvingRequest.id)}
+        />
+      )}
     </div>
   )
 }
