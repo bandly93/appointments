@@ -11,6 +11,7 @@ import { getBookingRequests, approveBookingRequest, rejectBookingRequest } from 
 import { type BookingRequest } from '../../bookingRequests/types/BookingRequest'
 import { bookingRequestEvents, BOOKING_REQUESTS_CHANGED } from '../../bookingRequests/events'
 import StatusBadge from '../../bookingRequests/components/StatusBadge'
+import AppointmentStatusBadge from '../../appointments/components/StatusBadge'
 import { addDays, startOfWeek, toLocalDateString } from '../lib/week'
 
 const APPOINTMENT_STATUSES: AppointmentStatus[] = ['SCHEDULED', 'COMPLETED', 'CANCELLED']
@@ -217,7 +218,7 @@ export default function Schedule() {
 
         {selected && (
           <Modal
-            title={selected.kind === 'request' ? 'Booking request' : 'Appointment'}
+            title={selected.kind === 'request' ? selected.request.patient.name : selected.appointment.patient.name}
             onClose={() => setSelected(null)}
           >
             <EventDetails
@@ -309,37 +310,39 @@ function EventDetails({
           </div>
         )
         : (
-          <div className='flex items-center justify-between gap-2'>
-            <span className='text-gray-600'>Status</span>
-            {canEditStatus
-              ? (
-                <select
-                  value={selection.appointment.status}
-                  disabled={isActing}
-                  onChange={(e) => onStatusChange(selection.appointment.id, e.target.value as AppointmentStatus)}
-                  className='rounded-md border border-gray-300 px-2 py-1 text-sm shadow-sm disabled:opacity-50'
-                >
-                  {APPOINTMENT_STATUSES.map((status) => (
-                    <option key={status} value={status}>{status}</option>
-                  ))}
-                </select>
-              )
-              : <span className='font-medium text-gray-900'>{selection.appointment.status}</span>
-            }
+          <div className='flex flex-col gap-3 rounded-md border border-gray-200 px-3 py-3'>
+            <div className='flex items-center justify-between gap-2'>
+              <span className='text-xs font-semibold uppercase tracking-wide text-gray-500'>Status</span>
+              {canEditStatus
+                ? (
+                  <select
+                    value={selection.appointment.status}
+                    disabled={isActing}
+                    onChange={(e) => onStatusChange(selection.appointment.id, e.target.value as AppointmentStatus)}
+                    className='rounded-md border border-gray-300 px-2 py-1 text-sm shadow-sm disabled:opacity-50'
+                  >
+                    {APPOINTMENT_STATUSES.map((status) => (
+                      <option key={status} value={status}>{status}</option>
+                    ))}
+                  </select>
+                )
+                : <AppointmentStatusBadge status={selection.appointment.status} />
+              }
+            </div>
+
+            {canEditDuration && selection.appointment.status !== 'CANCELLED' && (
+              <div>
+                <span className='mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500'>Duration</span>
+                <AppointmentDurationEditor
+                  appointment={selection.appointment}
+                  isActing={isActing}
+                  onSave={onDurationChange}
+                />
+              </div>
+            )}
           </div>
         )
       }
-
-      {selection.kind === 'appointment' && canEditDuration && selection.appointment.status !== 'CANCELLED' && (
-        <div className='flex items-center justify-between gap-2'>
-          <span className='text-gray-600'>Duration</span>
-          <AppointmentDurationEditor
-            appointment={selection.appointment}
-            isActing={isActing}
-            onSave={onDurationChange}
-          />
-        </div>
-      )}
     </div>
   )
 }
